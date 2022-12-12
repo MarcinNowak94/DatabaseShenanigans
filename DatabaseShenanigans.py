@@ -7,7 +7,7 @@ import time
 import datetime
 import base64
 import PySimpleGUI as sg
-
+import pandas
 import Config
 
 import matplotlib.pyplot as plt
@@ -21,9 +21,6 @@ placeholder=Config.placeholder
 finances_db=Config.databases[0]['fullpath']
 
 #Database stuff
-def Create_query(columns, table, modifier):
-    select='SELECT '+columns+' FROM '+table+' '+modifier
-    return select
 def getfromdb(database, select):
     connection = sqlite3.connect(database)  #<TODO>Try this, repeat if connection fails
     cursor = connection.cursor()
@@ -99,12 +96,6 @@ def Monthly_Bilance():
                  Config.databases[0]['select'][8])
     bilance=Get_collection_fromdb(finances_db, placeholder, get_bilance)
     Visualize_set(bilance, 'Bilance')
-def Methods():
-    database=Config.databases[1]['fullpath']
-    methods=getfromdb(database, Config.databases[1]['select'][0])
-    method_list=[method[0] for method in methods]
-    methods_to_graph=Get_collection_fromdb(database, Config.databases[1]['select'][1], method_list)
-    Visualize_set(methods_to_graph, 'Methods')
 def Income():
     income=     Get_collection_fromdb(finances_db, placeholder, Config.databases[0]['select'][1])
     Visualize_set(income, 'Monthly income')
@@ -150,12 +141,6 @@ def Monthly_Bilance_GUI():
                  Config.databases[0]['select'][8])
     bilance=Get_collection_fromdb(finances_db, placeholder, get_bilance)
     return Prepare_plot(bilance, 'Bilance')
-def Methods_GUI():
-    database=Config.databases[1]['fullpath']
-    methods=getfromdb(database, Config.databases[1]['select'][0])
-    method_list=[method[0] for method in methods]
-    methods_to_graph=Get_collection_fromdb(database, Config.databases[1]['select'][1], method_list)
-    return Prepare_plot(methods_to_graph, 'Methods')
 def Income_GUI():
     income= Get_collection_fromdb(finances_db, placeholder, {Config.databases[0]['select'][1]})
     return Prepare_plot(income, 'Monthly income')
@@ -188,7 +173,7 @@ get_views=      Config.select_common[1]             #replace placeholder during 
 # GetFullSchema()
 # TopTypeMonthly()
 # MostCommonProducts()    
- Income()
+#Income()
 # Monthly_Bilance()
 # MonthlyCharge()
 # GivenProduct('Fryzjer')
@@ -210,8 +195,7 @@ def main():
                  sg.Button('Most common products',  size=(Config.btn_width, Config.btn_height)),
                  sg.Button('Income',                size=(Config.btn_width, Config.btn_height)),
                  sg.Button('Monthly Bilance',       size=(Config.btn_width, Config.btn_height)),
-                 sg.Button('MonthlyCharge',         size=(Config.btn_width, Config.btn_height)),
-                 sg.Button('Methods',               size=(Config.btn_width, Config.btn_height))],
+                 sg.Button('MonthlyCharge',         size=(Config.btn_width, Config.btn_height))],
                 [sg.Text('Product',                 size=(Config.btn_width, Config.btn_height)),
                  sg.InputText(),
                  sg.Button('Product',               size=(Config.btn_width, Config.btn_height))],
@@ -245,9 +229,6 @@ def main():
             continue
         if event in ('MonthlyCharge'):
             draw_figure(window['canvas'].TKCanvas, MonthlyCharge_GUI())
-            continue
-        if event in ('Methods'):
-            draw_figure(window['canvas'].TKCanvas, Methods_GUI())
             continue
         if event in ('Product'):
             product=values[0]
