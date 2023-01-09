@@ -90,6 +90,28 @@ def Prepare_plot(set, title):
 
     fig = plt.gcf()      # if using Pyplot then get the figure from the plot
     return fig
+
+def draw_figure(canvas, figure, loc=(0, 0)):
+    figure_canvas_agg = FigureCanvasTkAgg(figure, canvas)
+    figure_canvas_agg.draw()
+    figure_canvas_agg.get_tk_widget().pack(side='top', fill='both', expand=1)
+    return figure_canvas_agg
+def preparelayout():
+    lout=[  #text and button stuff
+                [sg.Text('Pick desired graph')],
+                [sg.Button('TopTypeMonthly',        size=(Config.btn_width, Config.btn_height)), 
+                 ##sg.Button('Most common products',  size=(Config.btn_width, Config.btn_height)),
+                 sg.Button('Income',                size=(Config.btn_width, Config.btn_height)),
+                 sg.Button('Monthly Bilance',       size=(Config.btn_width, Config.btn_height)),
+                ],
+                [sg.Text('Product',                 size=(Config.btn_width, Config.btn_height)),
+                 sg.InputText(),
+                 sg.Button('Product',               size=(Config.btn_width, Config.btn_height))],
+                [sg.Canvas(key='canvas',            size=(Config.plot_width, Config.plot_height))],
+                [sg.Button('Exit',                  size=(Config.btn_width, Config.btn_height )),
+                 sg.Button('Clear',                 size=(Config.btn_width, Config.btn_height))]  
+            ]
+    return lout
 """ 
 #Visualizatins
 def MostCommonProducts():
@@ -102,29 +124,11 @@ def MostCommonProducts():
 
     Visualize_set(products, 'Products')
     return
-def GivenProduct(Product):
-    product_monthly=Config.databases[0]['select'][5].replace(placeholder, Product)
-    product_stats=getfromdb(finances_db, product_monthly)
-    Visualize(product_stats, Product)
-    return
 def TopTypeMonthly():
     top_type= getfromdb(finances_db, Config.databases[0]['select'][2])[0][0]        #Access value directly
     type_monthly=   Config.databases[0]['select'][3].replace(placeholder, top_type) #replace placeholder while using
     top_type_monthly= getfromdb(finances_db, type_monthly)
     Visualize(top_type_monthly, top_type+' products across time')
-
-def GetFullSchema():
-    get_tables= Config.select_common[0]             #replace placeholder while using
-    get_columns=Config.select_common[2]         #replace placeholder while using
-    tables=     getfromdb(finances_db, get_tables)        
-    for table in tables:
-        columnsinfo=get_columns.replace(placeholder, table[1])
-        columns=getfromdb(finances_db, columnsinfo)
-        print(columns)
-    print("<TODO> Not finished yet!\a")
-    return
-
-
 
 def MostCommonProducts_GUI():
     get_products=   Config.databases[0]['select'][4]
@@ -135,10 +139,6 @@ def MostCommonProducts_GUI():
     products=       Get_collection_fromdb(finances_db, product_monthly, product_list)
 
     return Prepare_plot(products, 'Products')
-def GivenProduct_GUI(Product):
-    product_monthly=Config.databases[0]['select'][5]
-    product_stats=Get_collection_fromdb(finances_db, product_monthly, {Product})
-    return Prepare_plot(product_stats, Product)
 """
 def Income():
     income= Get_collection_fromdb(finances_db, 
@@ -162,30 +162,11 @@ def TopTypeMonthly():
                                             {type_monthly})
     top_type_monthly=[(top_type_monthly[0][0], top_type)]  #Changing Select to type
     return Prepare_plot(top_type_monthly, top_type+' products across time')
+def GivenProduct(Product):
+    product_monthly=Config.Finances.selects['GivenProduct']
+    product_stats=Get_collection_fromdb(finances_db, product_monthly, {Product})
+    return Prepare_plot(product_stats, Product)
 
-def draw_figure(canvas, figure, loc=(0, 0)):
-    figure_canvas_agg = FigureCanvasTkAgg(figure, canvas)
-    figure_canvas_agg.draw()
-    figure_canvas_agg.get_tk_widget().pack(side='top', fill='both', expand=1)
-    return figure_canvas_agg
-
-def preparelayout():
-    #Previous version
-    lout=[  #text and button stuff
-                [sg.Text('Pick desired graph')],
-                [sg.Button('TopTypeMonthly',        size=(Config.btn_width, Config.btn_height)), 
-                 ##sg.Button('Most common products',  size=(Config.btn_width, Config.btn_height)),
-                 sg.Button('Income',                size=(Config.btn_width, Config.btn_height)),
-                 sg.Button('Monthly Bilance',       size=(Config.btn_width, Config.btn_height)),
-                ],
-                [sg.Text('Product',                 size=(Config.btn_width, Config.btn_height)),
-                 sg.InputText(),
-                 sg.Button('Product',               size=(Config.btn_width, Config.btn_height))],
-                [sg.Canvas(key='canvas',            size=(Config.plot_width, Config.plot_height))],
-                [sg.Button('Exit',                  size=(Config.btn_width, Config.btn_height )),
-                 sg.Button('Clear',                 size=(Config.btn_width, Config.btn_height))]  
-            ]
-    return lout
 
 def main():
     sg.theme('DarkAmber')	# Add a touch of color
@@ -210,11 +191,6 @@ def main():
         if event in ('Most common products'):
             draw_figure(window['canvas'].TKCanvas, MostCommonProducts_GUI())
             continue
-
-        if event in ('Product'):
-            product=values[0]
-            draw_figure(window['canvas'].TKCanvas, GivenProduct_GUI(product))
-            continue
         """
         if event in ('Income'):
             draw_figure(window['canvas'].TKCanvas, Income())
@@ -223,6 +199,10 @@ def main():
             continue
         if event in ('TopTypeMonthly'):
             draw_figure(window['canvas'].TKCanvas, TopTypeMonthly())
+            continue
+        if event in ('Product'):
+            product=values[0]
+            draw_figure(window['canvas'].TKCanvas, GivenProduct(product))
             continue
         if event in ('Clear'):
             #TODO: Clear plot before drawing next
