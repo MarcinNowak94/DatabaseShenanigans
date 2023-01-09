@@ -19,7 +19,7 @@ from dateutil import parser
 import Config
 finances_db=Config.Finances.fullpath
 
-
+#------- Incantations end here -------------------------------------------------
 
 #Database stuff
 def getfromdb(database, select):
@@ -30,7 +30,7 @@ def getfromdb(database, select):
     connection.close()
     return rows
 def Get_collection_fromdb(database, select_template, conditions):
-    #select use [R_CONDITION] as placeholder for condition 
+    #select use [CONDITION] as placeholder for condition 
     datasets=[]
     select=''
     for condition in conditions:
@@ -39,41 +39,6 @@ def Get_collection_fromdb(database, select_template, conditions):
         datasets.append((data_from_db, condition))
     return datasets
 
-#Graphing
-def Visualize(data, title):
-    dates=[]
-    values=[]
-    for record in data:
-        dates.append(parser.parse(record[0]))    
-        values.append(record[1])
-    plt.style.use('fivethirtyeight')
-    figure, ax = plt.subplots()    #figure, ax=axes object on figure
-    ax.plot(dates,values)
-    ax.set_title(str(title))    
-    plt.show(figure)
-    print('Above line produces goes int infinite loop')
-    return
-def Visualize_set(set, title):
-    plt.style.use('fivethirtyeight')
-    figure, ax = plt.subplots()    #fig=figure, ax=axes object on figure
-    for data in set:
-        dates=[]
-        values=[]
-        for record in data[0]:
-            dates.append(parser.parse(record[0]))    
-            values.append(record[1])
-        ax.plot(dates,values, label=data[1])
-        #Anootating as per: https://stackoverflow.com/questions/6282058/writing-numerical-values-on-the-plot-with-matplotlib
-        #for point in data[0]:
-        #    print(point)
-        #    ax.annotate(point[1], point)
-        #https://python-graph-gallery.com/123-highlight-a-line-in-line-plot/ - annotating
-
-    ax.set_title(str(title))
-    ax.legend()
-    plt.show(figure)
-    
-    return
 def Prepare_plot(set, title):
     plt.style.use('fivethirtyeight')
     figure, ax = plt.subplots()    #fig=figure, ax=axes object on figure
@@ -89,29 +54,37 @@ def Prepare_plot(set, title):
 
     fig = plt.gcf()      # if using Pyplot then get the figure from the plot
     return fig
-
 def draw_figure(canvas, figure, loc=(0, 0)):
     figure_canvas_agg = FigureCanvasTkAgg(figure, canvas)
     figure_canvas_agg.draw()
     figure_canvas_agg.get_tk_widget().pack(side='top', fill='both', expand=1)
     return figure_canvas_agg
 def preparelayout():
+    #Get list of common products from DB
+    products=GetProducts()
+    listofproducts=[]
+    for product in products:
+        listofproducts.append(product[0]+"("+str(product[2])+")")
+        
     lout=[  #text and button stuff
-                [sg.Text('Pick desired graph')],
-                [sg.Button('TopTypeMonthly',        size=(Config.btn_width, Config.btn_height)), 
-                 sg.Button('Most common products',  size=(Config.btn_width, Config.btn_height)),
-                 sg.Button('Income',                size=(Config.btn_width, Config.btn_height)),
-                 sg.Button('Monthly Bilance',       size=(Config.btn_width, Config.btn_height)),
-                ],
-                [sg.Text('Product',                 size=(Config.btn_width, Config.btn_height)),
-                 sg.InputText(),
-                 sg.Button('Product',               size=(Config.btn_width, Config.btn_height))],
-                [sg.Canvas(key='canvas',            size=(Config.plot_width, Config.plot_height))],
-                [sg.Button('Exit',                  size=(Config.btn_width, Config.btn_height )),
-                 sg.Button('Clear',                 size=(Config.btn_width, Config.btn_height))]  
-            ]
+            [sg.Text('Pick desired graph')],
+            [sg.Button('TopTypeMonthly',        size=(Config.btn_width, Config.btn_height)), 
+                sg.Button('Most common products',  size=(Config.btn_width, Config.btn_height)),
+                sg.Button('Income',                size=(Config.btn_width, Config.btn_height)),
+                sg.Button('Monthly Bilance',       size=(Config.btn_width, Config.btn_height)),
+            ],
+            [sg.Text('Product',                 size=(Config.btn_width, Config.btn_height)),
+                sg.DropDown(listofproducts),
+                sg.Button('Product',               size=(Config.btn_width, Config.btn_height))],
+            [sg.Canvas(key='canvas',            size=(Config.plot_width, Config.plot_height))],
+            [sg.Button('Exit',                  size=(Config.btn_width, Config.btn_height )),
+                sg.Button('Clear',                 size=(Config.btn_width, Config.btn_height))]  
+        ]
     return lout
 
+def GetProducts():
+    get_products=   Config.Finances.selects['ProductSummary']
+    return getfromdb(finances_db, get_products)
 def Income():
     income= Get_collection_fromdb(finances_db, 
                                   Config.placeholder, 
@@ -137,10 +110,8 @@ def GivenProduct(Product):
     product_stats=Get_collection_fromdb(finances_db, product_monthly, {Product})
     return Prepare_plot(product_stats, Product)
 def MostCommonProducts():
-    get_products=   Config.Finances.selects['ProductSummary']
     product_monthly=Config.Finances.selects['GivenProduct']
-    
-    all_products=   getfromdb(finances_db, get_products)
+    all_products= GetProducts()
     product_list=[product[0] for product in all_products[0:Config.limit]]
     products= Get_collection_fromdb(finances_db, 
                                     product_monthly, 
@@ -150,10 +121,10 @@ def MostCommonProducts():
 def main():
     sg.theme('DarkAmber')
     layout = preparelayout();
-    window = sg.Window('Finance visualizer', 
+    window = sg.Window('Budgeter', 
                     layout, 
                     size=(Config.window_width, Config.window_height),
-                    finalize=True)
+                    finalize=False)
     
     # Event Loop to process "events" and get the "values" of the inputs
     while True:
@@ -173,7 +144,7 @@ def main():
             continue
         if event in ('Product'):
             product=values[0]
-            draw_figure(window['canvas'].TKCanvas, GivenProduct(product))
+            draw_figure(window['canvas'].TKCanvas, GivenProduct(product.partition("(")[0]))
             continue
         if event in ('Clear'):
             #TODO: Clear plot before drawing next
