@@ -18,7 +18,7 @@ from dateutil import parser
 
 import Config
 #placeholder=Config.placeholder
-#finances_db=Config.databases[0]['fullpath']
+finances_db=Config.Finances.fullpath
 
 
 
@@ -92,15 +92,6 @@ def Prepare_plot(set, title):
     return fig
 """ 
 #Visualizatins
-def Monthly_Bilance():
-    get_bilance=(Finances.selects['Income'],
-                 Finances.selects['Bills'],
-                 Finances.selects['MonthlyExpenditures'])
-    bilance=Get_collection_fromdb(Finances.fullpath, placeholder, get_bilance)
-    Visualize_set(bilance, 'Bilance')
-def Income():
-    income=     Get_collection_fromdb(Finances.fullpath, placeholder, Finances.selects['Income'])
-    Visualize_set(income, 'Monthly income')
 def MostCommonProducts():
     get_products=   Finances.selects["Products"]
     product_monthly=Config.databases[0]['select'][5]
@@ -133,12 +124,7 @@ def GetFullSchema():
     print("<TODO> Not finished yet!\a")
     return
 
-def Monthly_Bilance_GUI():
-    get_bilance=(Config.databases[0]['select'][6],
-                 Config.databases[0]['select'][7],
-                 Config.databases[0]['select'][8])
-    bilance=Get_collection_fromdb(finances_db, placeholder, get_bilance)
-    return Prepare_plot(bilance, 'Bilance')
+
 
 def MostCommonProducts_GUI():
     get_products=   Config.databases[0]['select'][4]
@@ -153,33 +139,29 @@ def GivenProduct_GUI(Product):
     product_monthly=Config.databases[0]['select'][5]
     product_stats=Get_collection_fromdb(finances_db, product_monthly, {Product})
     return Prepare_plot(product_stats, Product)
-def TopTypeMonthly_GUI():
-    top_type= getfromdb(finances_db, Config.databases[0]['select'][2])[0][0]        #Access value directly
-    type_monthly=   Config.databases[0]['select'][3].replace(placeholder, top_type) #replace placeholder while using
-    top_type_monthly= Get_collection_fromdb(finances_db, placeholder, {type_monthly})
-    top_type_monthly=[(top_type_monthly[0][0], top_type)]                           #Changing Select to type
-    return Prepare_plot(top_type_monthly, top_type+' products across time')
-def MonthlyCharge_GUI():
-    charge=Get_collection_fromdb(finances_db, placeholder, {databases[0].selects(MonthlyCharge)})
-    return Prepare_plot(charge, "Monthly charge rate calculation")
 """
-def Income_GUI():
-    income= Get_collection_fromdb(Config.Finances.fullpath, 
+def Income():
+    income= Get_collection_fromdb(finances_db, 
                                   Config.placeholder, 
                                   {Config.Finances.selects["MonthlyIncome"]})
     return Prepare_plot(income, 'Monthly income')
-
-
-#Prepared selects
-#get_views=      Config.select_common[1]             #replace placeholder during usage
-
-# GetFullSchema()
-# TopTypeMonthly()
-# MostCommonProducts()    
-#Income()
-# Monthly_Bilance()
-# MonthlyCharge()
-# GivenProduct('Fryzjer')
+def Monthly_Bilance():
+    get_bilance=(Config.Finances.selects['MonthlyIncome'],
+                 Config.Finances.selects['MonthlyBills'],
+                 Config.Finances.selects['MonthlyExpenditures'])
+    bilance=Get_collection_fromdb(finances_db, 
+                                  Config.placeholder, 
+                                  get_bilance)
+    return Prepare_plot(bilance, 'Bilance')
+def TopTypeMonthly():
+    top_type= getfromdb(finances_db, 
+                        Config.Finances.selects['MostCommonProduct'])[0][0]        #Access value directly
+    type_monthly= Config.Finances.selects['ProductSummary'].replace(Config.placeholder, top_type) #replace placeholder while using
+    top_type_monthly= Get_collection_fromdb(finances_db, 
+                                            Config.placeholder, 
+                                            {type_monthly})
+    top_type_monthly=[(top_type_monthly[0][0], top_type)]  #Changing Select to type
+    return Prepare_plot(top_type_monthly, top_type+' products across time')
 
 def draw_figure(canvas, figure, loc=(0, 0)):
     figure_canvas_agg = FigureCanvasTkAgg(figure, canvas)
@@ -192,10 +174,10 @@ def preparelayout():
     lout=[  #text and button stuff
                 [sg.Text('Pick desired graph')],
                 [sg.Button('TopTypeMonthly',        size=(Config.btn_width, Config.btn_height)), 
-                 sg.Button('Most common products',  size=(Config.btn_width, Config.btn_height)),
+                 ##sg.Button('Most common products',  size=(Config.btn_width, Config.btn_height)),
                  sg.Button('Income',                size=(Config.btn_width, Config.btn_height)),
                  sg.Button('Monthly Bilance',       size=(Config.btn_width, Config.btn_height)),
-                 sg.Button('MonthlyCharge',         size=(Config.btn_width, Config.btn_height))],
+                ],
                 [sg.Text('Product',                 size=(Config.btn_width, Config.btn_height)),
                  sg.InputText(),
                  sg.Button('Product',               size=(Config.btn_width, Config.btn_height))],
@@ -225,28 +207,23 @@ def main():
         if event in (None, 'Exit'):	
             break
         """
-        if event in ('TopTypeMonthly'):
-            draw_figure(window['canvas'].TKCanvas, TopTypeMonthly_GUI())
-            continue
         if event in ('Most common products'):
             draw_figure(window['canvas'].TKCanvas, MostCommonProducts_GUI())
             continue
-        if event in ('Income'):
-            draw_figure(window['canvas'].TKCanvas, Income_GUI())
-            continue
-        if event in ('Monthly_Bilance'):
-            draw_figure(window['canvas'].TKCanvas, Monthly_Bilance_GUI()) 
-            continue
-        if event in ('MonthlyCharge'):
-            draw_figure(window['canvas'].TKCanvas, MonthlyCharge_GUI())
-            continue
+
         if event in ('Product'):
             product=values[0]
             draw_figure(window['canvas'].TKCanvas, GivenProduct_GUI(product))
             continue
         """
         if event in ('Income'):
-            draw_figure(window['canvas'].TKCanvas, Income_GUI())
+            draw_figure(window['canvas'].TKCanvas, Income())
+        if event in ('Monthly Bilance'):
+            draw_figure(window['canvas'].TKCanvas, Monthly_Bilance()) 
+            continue
+        if event in ('TopTypeMonthly'):
+            draw_figure(window['canvas'].TKCanvas, TopTypeMonthly())
+            continue
         if event in ('Clear'):
             #TODO: Clear plot before drawing next
             print('window[\'canvas\'].TKCanvas.delete("all") does not work')
