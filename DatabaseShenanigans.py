@@ -17,7 +17,6 @@ matplotlib.use('TkAgg')         #Use tinker to integrate matplotlib with GUI
 from dateutil import parser
 
 import Config
-#placeholder=Config.placeholder
 finances_db=Config.Finances.fullpath
 
 
@@ -100,7 +99,7 @@ def preparelayout():
     lout=[  #text and button stuff
                 [sg.Text('Pick desired graph')],
                 [sg.Button('TopTypeMonthly',        size=(Config.btn_width, Config.btn_height)), 
-                 ##sg.Button('Most common products',  size=(Config.btn_width, Config.btn_height)),
+                 sg.Button('Most common products',  size=(Config.btn_width, Config.btn_height)),
                  sg.Button('Income',                size=(Config.btn_width, Config.btn_height)),
                  sg.Button('Monthly Bilance',       size=(Config.btn_width, Config.btn_height)),
                 ],
@@ -112,51 +111,22 @@ def preparelayout():
                  sg.Button('Clear',                 size=(Config.btn_width, Config.btn_height))]  
             ]
     return lout
-""" 
-#Visualizatins
-def MostCommonProducts():
-    get_products=   Finances.selects["Products"]
-    product_monthly=Config.databases[0]['select'][5]
-    
-    all_products=   getfromdb(finances_db, get_products)
-    product_list=[product[0] for product in all_products[0:Config.limit]]
-    products=       Get_collection_fromdb(finances_db, product_monthly, product_list)
 
-    Visualize_set(products, 'Products')
-    return
-def TopTypeMonthly():
-    top_type= getfromdb(finances_db, Config.databases[0]['select'][2])[0][0]        #Access value directly
-    type_monthly=   Config.databases[0]['select'][3].replace(placeholder, top_type) #replace placeholder while using
-    top_type_monthly= getfromdb(finances_db, type_monthly)
-    Visualize(top_type_monthly, top_type+' products across time')
-
-def MostCommonProducts_GUI():
-    get_products=   Config.databases[0]['select'][4]
-    product_monthly=Config.databases[0]['select'][5]
-    
-    all_products=   getfromdb(finances_db, get_products)
-    product_list=[product[0] for product in all_products[0:Config.limit]]
-    products=       Get_collection_fromdb(finances_db, product_monthly, product_list)
-
-    return Prepare_plot(products, 'Products')
-"""
 def Income():
     income= Get_collection_fromdb(finances_db, 
                                   Config.placeholder, 
                                   {Config.Finances.selects["MonthlyIncome"]})
     return Prepare_plot(income, 'Monthly income')
 def Monthly_Bilance():
-    get_bilance=(Config.Finances.selects['MonthlyIncome'],
-                 Config.Finances.selects['MonthlyBills'],
-                 Config.Finances.selects['MonthlyExpenditures'])
-    bilance=Get_collection_fromdb(finances_db, 
-                                  Config.placeholder, 
-                                  get_bilance)
+    tables=('MonthlyIncome','MonthlyBills','MonthlyExpenditures')
+    bilance=Get_collection_fromdb(finances_db,
+                                  Config.Finances.selects['AnyTable'],
+                                  tables)
     return Prepare_plot(bilance, 'Bilance')
 def TopTypeMonthly():
     top_type= getfromdb(finances_db, 
                         Config.Finances.selects['MostCommonProduct'])[0][0]        #Access value directly
-    type_monthly= Config.Finances.selects['ProductSummary'].replace(Config.placeholder, top_type) #replace placeholder while using
+    type_monthly= Config.Finances.selects['TypeSummary'].replace(Config.placeholder, top_type) #replace placeholder while using
     top_type_monthly= Get_collection_fromdb(finances_db, 
                                             Config.placeholder, 
                                             {type_monthly})
@@ -166,17 +136,20 @@ def GivenProduct(Product):
     product_monthly=Config.Finances.selects['GivenProduct']
     product_stats=Get_collection_fromdb(finances_db, product_monthly, {Product})
     return Prepare_plot(product_stats, Product)
-
+def MostCommonProducts():
+    get_products=   Config.Finances.selects['ProductSummary']
+    product_monthly=Config.Finances.selects['GivenProduct']
+    
+    all_products=   getfromdb(finances_db, get_products)
+    product_list=[product[0] for product in all_products[0:Config.limit]]
+    products= Get_collection_fromdb(finances_db, 
+                                    product_monthly, 
+                                    product_list)
+    return Prepare_plot(products, 'Products')
 
 def main():
-    sg.theme('DarkAmber')	# Add a touch of color
-
-    #for Select in Finances.selects
-
-    # All the stuff inside your window.
+    sg.theme('DarkAmber')
     layout = preparelayout();
-
-    # Create the Window
     window = sg.Window('Finance visualizer', 
                     layout, 
                     size=(Config.window_width, Config.window_height),
@@ -187,11 +160,9 @@ def main():
         event, values = window.read()
         if event in (None, 'Exit'):	
             break
-        """
         if event in ('Most common products'):
-            draw_figure(window['canvas'].TKCanvas, MostCommonProducts_GUI())
+            draw_figure(window['canvas'].TKCanvas, MostCommonProducts())
             continue
-        """
         if event in ('Income'):
             draw_figure(window['canvas'].TKCanvas, Income())
         if event in ('Monthly Bilance'):
