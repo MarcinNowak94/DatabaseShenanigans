@@ -8,6 +8,7 @@ import datetime
 import base64
 import PySimpleGUI as sg
 import pandas
+from enum import Enum
 
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
@@ -20,30 +21,6 @@ import Config
 finances_db=Config.Finances.fullpath
 
 #------- Incantations end here -------------------------------------------------
-
-#Layouts
-def menu():
-    #Get list of common products from DB
-    products=GetProducts()
-    listofproducts=[]
-    for product in products:
-        listofproducts.append(product[0]+"("+str(product[2])+")")
-
-    lout=[  #text and button stuff
-            [sg.Text('Pick desired graph')],
-            [sg.Button('TopTypeMonthly'), 
-                sg.Button('Most common products'),
-                sg.Button('Income'),
-                sg.Button('Monthly Bilance'),
-            ],
-            [sg.Text('Product'),
-                sg.DropDown(listofproducts),
-                sg.Button('Product')],
-            [sg.Canvas(key='canvas',                size=(Config.plot_width, Config.plot_height-160), expand_x=True, expand_y=True)],
-            [sg.Button('Exit'),
-                sg.Button('Clear')]  
-        ]
-    return lout
 
 #Database stuff
 def getfromdb(database, select):
@@ -79,7 +56,7 @@ def Prepare_plot(set, title):
     #fig = plt.gcf()      # if using Pyplot then get the figure from the plot
     return figure
 def draw_figure(canvas, figure, loc=(0, 0)):
-    #Clear canvas
+    #Clear canvas as per https://stackoverflow.com/questions/64403707/interactive-matplotlib-plot-in-pysimplegui
     if canvas.children:
         for child in canvas.winfo_children():
             child.destroy()
@@ -89,9 +66,7 @@ def draw_figure(canvas, figure, loc=(0, 0)):
     figure_canvas_agg.get_tk_widget().pack(fill='both', expand=True)
     return figure_canvas_agg
 
-def GetProducts():
-    get_products=   Config.Finances.selects['ProductSummary']
-    return getfromdb(finances_db, get_products)
+
 def Income():
     income= Get_collection_fromdb(finances_db, 
                                   Config.placeholder, 
@@ -116,6 +91,10 @@ def GivenProduct(Product):
     product_monthly=Config.Finances.selects['GivenProduct']
     product_stats=Get_collection_fromdb(finances_db, product_monthly, {Product})
     return Prepare_plot(product_stats, Product)
+def GivenType(type):
+    type_monthly=Config.Finances.selects['GivenType']
+    type_stats=Get_collection_fromdb(finances_db, type_monthly, {type})
+    return Prepare_plot(type_stats, type)
 def MostCommonProducts():
     product_monthly=Config.Finances.selects['GivenProduct']
     all_products= GetProducts()
@@ -125,10 +104,45 @@ def MostCommonProducts():
                                     product_list)
     return Prepare_plot(products, 'Products')
 
+#Layout and menu ---------------------------------------------------------------
+def Listfromtable(table):
+    #Get list of common products from DB
+    values=getfromdb(finances_db, Config.Finances.selects[table])
+    valuelist=[]
+
+    for value in values:
+        valuelist.append(value[0]+"("+str(value[2])+")")
+    return valuelist
+
+
 def main():
+    #layout preparation
+    products=Listfromtable("ProductSummary");
+    types=Listfromtable("TypeSummary");
     sg.theme('DarkAmber')
-    layout = menu();
-    prevlayout = [];
+    menu = [['Visualizations', 
+                ['Most common products', 
+                 'Income',
+                 'Monthly Bilance',
+                 'TopTypeMonthly',
+                 'Type'
+                    ,[types],
+                 'Product'
+                    ,[products]]],
+            ['Insert data',                     #TODO
+                ['Expenditures',                #TODO
+                 'Bills',                       #TODO
+                 'Income']],                    #TODO
+            ['Options',                         #TODO
+                ['Configure',                   #TODO
+                'About...']]                    #TODO
+            ]
+
+    layout=[  #text and button stuff
+            [sg.Menu(menu)],
+            [sg.Canvas(key='canvas',                size=(Config.plot_width, Config.plot_height-160), expand_x=True, expand_y=True)]
+            #,[sg.Button('Exit')] #Not needed, user can simply close window  
+        ]
     
     window = sg.Window('Budgeter', 
                     layout, 
@@ -157,13 +171,13 @@ def main():
         if event in ('TopTypeMonthly'):
             draw_figure(window['canvas'].TKCanvas, TopTypeMonthly())
             continue
-        if event in ('Product'):
-            product=values[0]
-            draw_figure(window['canvas'].TKCanvas, GivenProduct(product.partition("(")[0]))
+        if event in (products):    
+            #product=values[0] #Alternative way - use if there will be more events
+            draw_figure(window['canvas'].TKCanvas, GivenProduct(event.partition("(")[0]))
             continue
-        if event in ('Clear'):
-            #TODO: Clear plot before drawing next
-            print('window[\'canvas\'].TKCanvas.delete("all") does not work')
+        if event in (types):    
+            #product=values[0] #Alternative way - use if there will be more events
+            draw_figure(window['canvas'].TKCanvas, GivenType(event.partition("(")[0]))
             continue
     window.close()
 
