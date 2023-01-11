@@ -65,23 +65,28 @@ def Get_collection_fromdb(database, select_template, conditions):
 
 def Prepare_plot(set, title):
     plt.style.use('fivethirtyeight')
-    figure, ax = plt.subplots()    #fig=figure, ax=axes object on figure
+    figure, axes = plt.subplots()    #fig=figure, ax=axes object on figure
     for data in set:
         dates=[]
         values=[]
         for record in data[0]:
             dates.append(parser.parse(record[0]))
             values.append(record[1])
-        ax.plot(dates,values, label=data[1])
-    ax.set_title(str(title))
-    ax.legend()
+        axes.plot(dates,values, label=data[1])
+    axes.set_title(str(title))
+    axes.legend()
 
-    fig = plt.gcf()      # if using Pyplot then get the figure from the plot
-    return fig
+    #fig = plt.gcf()      # if using Pyplot then get the figure from the plot
+    return figure
 def draw_figure(canvas, figure, loc=(0, 0)):
+    #Clear canvas
+    if canvas.children:
+        for child in canvas.winfo_children():
+            child.destroy()
+    #Draw new figure
     figure_canvas_agg = FigureCanvasTkAgg(figure, canvas)
     figure_canvas_agg.draw()
-    figure_canvas_agg.get_tk_widget().pack(side='top', fill='both', expand=1)
+    figure_canvas_agg.get_tk_widget().pack(fill='both', expand=True)
     return figure_canvas_agg
 
 def GetProducts():
@@ -145,6 +150,7 @@ def main():
             continue
         if event in ('Income'):
             draw_figure(window['canvas'].TKCanvas, Income())
+            continue
         if event in ('Monthly Bilance'):
             draw_figure(window['canvas'].TKCanvas, Monthly_Bilance()) 
             continue
