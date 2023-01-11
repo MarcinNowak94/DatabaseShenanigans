@@ -21,6 +21,30 @@ finances_db=Config.Finances.fullpath
 
 #------- Incantations end here -------------------------------------------------
 
+#Layouts
+def menu():
+    #Get list of common products from DB
+    products=GetProducts()
+    listofproducts=[]
+    for product in products:
+        listofproducts.append(product[0]+"("+str(product[2])+")")
+
+    lout=[  #text and button stuff
+            [sg.Text('Pick desired graph')],
+            [sg.Button('TopTypeMonthly'), 
+                sg.Button('Most common products'),
+                sg.Button('Income'),
+                sg.Button('Monthly Bilance'),
+            ],
+            [sg.Text('Product'),
+                sg.DropDown(listofproducts),
+                sg.Button('Product')],
+            [sg.Canvas(key='canvas',                size=(Config.plot_width, Config.plot_height-160), expand_x=True, expand_y=True)],
+            [sg.Button('Exit'),
+                sg.Button('Clear')]  
+        ]
+    return lout
+
 #Database stuff
 def getfromdb(database, select):
     connection = sqlite3.connect(database)  #<TODO>Try this, repeat if connection fails
@@ -59,28 +83,6 @@ def draw_figure(canvas, figure, loc=(0, 0)):
     figure_canvas_agg.draw()
     figure_canvas_agg.get_tk_widget().pack(side='top', fill='both', expand=1)
     return figure_canvas_agg
-def preparelayout():
-    #Get list of common products from DB
-    products=GetProducts()
-    listofproducts=[]
-    for product in products:
-        listofproducts.append(product[0]+"("+str(product[2])+")")
-        
-    lout=[  #text and button stuff
-            [sg.Text('Pick desired graph')],
-            [sg.Button('TopTypeMonthly',        size=(Config.btn_width, Config.btn_height)), 
-                sg.Button('Most common products',  size=(Config.btn_width, Config.btn_height)),
-                sg.Button('Income',                size=(Config.btn_width, Config.btn_height)),
-                sg.Button('Monthly Bilance',       size=(Config.btn_width, Config.btn_height)),
-            ],
-            [sg.Text('Product',                 size=(Config.btn_width, Config.btn_height)),
-                sg.DropDown(listofproducts),
-                sg.Button('Product',               size=(Config.btn_width, Config.btn_height))],
-            [sg.Canvas(key='canvas',            size=(Config.plot_width, Config.plot_height))],
-            [sg.Button('Exit',                  size=(Config.btn_width, Config.btn_height )),
-                sg.Button('Clear',                 size=(Config.btn_width, Config.btn_height))]  
-        ]
-    return lout
 
 def GetProducts():
     get_products=   Config.Finances.selects['ProductSummary']
@@ -120,11 +122,18 @@ def MostCommonProducts():
 
 def main():
     sg.theme('DarkAmber')
-    layout = preparelayout();
+    layout = menu();
+    prevlayout = [];
+    
     window = sg.Window('Budgeter', 
                     layout, 
                     size=(Config.window_width, Config.window_height),
-                    finalize=False)
+                    auto_size_buttons=False,
+                    default_button_element_size=(Config.btn_width, Config.btn_height),
+                    #TODO: fix, icon source: https://www.iconpacks.net/free-icon/money-bag-6384.html
+                    titlebar_icon="E:\Downloads\money-bag-6384_1_.ico",
+                    finalize=False
+                    )
     
     # Event Loop to process "events" and get the "values" of the inputs
     while True:
