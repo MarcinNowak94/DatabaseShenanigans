@@ -66,13 +66,24 @@ def draw_figure(canvas, figure, loc=(0, 0)):
     figure_canvas_agg.get_tk_widget().pack(fill='both', expand=True)
     return figure_canvas_agg
 
-
-def Income():
+def GetDBInfo(database):
+    db={}
+    for table in getfromdb(database, Config.Common['GetTables']):
+        table=table[0] #Get only text
+        select=Config.Common['GetColumns'].replace(Config.placeholder, table)
+        columns=getfromdb(database, select)
+        names=[]
+        for values in columns:
+            names.append(values[0])
+        db[table]={"name": table, "columns": names}
+    return db
+#Visualizations
+def IncomeSummary():
     income= Get_collection_fromdb(finances_db, 
                                   Config.placeholder, 
                                   {Config.Finances.selects["MonthlyIncome"]})
     return Prepare_plot(income, 'Monthly income')
-def Monthly_Bilance():
+def MonthlyBilance():
     tables=('MonthlyIncome','MonthlyBills','MonthlyExpenditures')
     bilance=Get_collection_fromdb(finances_db,
                                   Config.Finances.selects['AnyTable'],
@@ -81,7 +92,7 @@ def Monthly_Bilance():
 def TopTypeMonthly():
     top_type= getfromdb(finances_db, 
                         Config.Finances.selects['MostCommonProduct'])[0][0]        #Access value directly
-    type_monthly= Config.Finances.selects['TypeSummary'].replace(Config.placeholder, top_type) #replace placeholder while using
+    type_monthly= Config.Finances.selects['GivenType'].replace(Config.placeholder, top_type) #replace placeholder while using
     top_type_monthly= Get_collection_fromdb(finances_db, 
                                             Config.placeholder, 
                                             {type_monthly})
@@ -95,34 +106,50 @@ def GivenType(type):
     type_monthly=Config.Finances.selects['GivenType']
     type_stats=Get_collection_fromdb(finances_db, type_monthly, {type})
     return Prepare_plot(type_stats, type)
-def MostCommonProducts():
+def MostCommonProducts(amount):
     product_monthly=Config.Finances.selects['GivenProduct']
-    all_products= GetProducts()
-    product_list=[product[0] for product in all_products[0:Config.limit]]
+    all_products= Listfromtable("ProductSummary")
+    product_list=[product[0] for product in all_products[0:amount]]
     products= Get_collection_fromdb(finances_db, 
                                     product_monthly, 
                                     product_list)
     return Prepare_plot(products, 'Products')
 
 #Layout and menu ---------------------------------------------------------------
-def Listfromtable(table):
+def Listfromtable(table, addvalues=True):
     #Get list of common products from DB
     values=getfromdb(finances_db, Config.Finances.selects[table])
     valuelist=[]
-
+    
     for value in values:
-        valuelist.append(value[0]+"("+str(value[2])+")")
+        element = value[0]+"("+str(value[2])+")" if addvalues else value[0]
+        valuelist.append(element)
     return valuelist
-
+def TableToLayout(table, tables, visible=False):
+    select=Config.Finances.selects['AnyTable']
+    select=select.replace(Config.placeholder, tables[table]['name'])
+    vals=getfromdb(finances_db, select)
+    tableelement=sg.Table(key=tables[table]['name']+'_table',
+                        values=vals,
+                        headings=tables[table]['columns'], 
+                        num_rows=10,
+                        visible=True)
+    return tableelement
+def ToggleVisualization(window, element):
+    for visualization in window.AllKeysDict:
+        if not visualization=='Menu':
+            window[visualization].update(visible=False)
+    window[element].update(visible=True)
 
 def main():
     #layout preparation
-    products=Listfromtable("ProductSummary");
-    types=Listfromtable("TypeSummary");
+    schema=GetDBInfo(finances_db)
+    products=Listfromtable("ProductSummary")
+    types=Listfromtable("TypeSummary")
     sg.theme('DarkAmber')
     menu = [['Visualizations', 
                 ['Most common products', 
-                 'Income',
+                 'Income summary',
                  'Monthly Bilance',
                  'TopTypeMonthly',
                  'Type'
@@ -138,19 +165,29 @@ def main():
                 'About...']]                    #TODO
             ]
 
-    layout=[  #text and button stuff
-            [sg.Menu(menu)],
-            [sg.Canvas(key='canvas',                size=(Config.plot_width, Config.plot_height-160), expand_x=True, expand_y=True)]
+    visualization=[  #text and button stuff
+            [sg.Menu(key='Menu', menu_definition=menu)],
+            [sg.Canvas(key='canvas',
+                        size=(Config.plot_width, Config.plot_height-160),
+                        expand_x=True, 
+                        expand_y=True,
+                        visible=False)],
+            #[TableToLayout('Income', schema)]
             #,[sg.Button('Exit')] #Not needed, user can simply close window  
         ]
     
+    edition=[  #text and button stuff
+            [sg.Menu(menu)] 
+        ]
+
+
     window = sg.Window('Budgeter', 
-                    layout, 
+                    visualization, 
                     size=(Config.window_width, Config.window_height),
                     auto_size_buttons=False,
                     default_button_element_size=(Config.btn_width, Config.btn_height),
                     #TODO: fix, icon source: https://www.iconpacks.net/free-icon/money-bag-6384.html
-                    titlebar_icon="E:\Downloads\money-bag-6384_1_.ico",
+                    titlebar_icon="E:\Projects\Python\DatabaseShenanigans\DatabaseShenanigans\Icon.ico",
                     finalize=False
                     )
     
@@ -159,25 +196,36 @@ def main():
         event, values = window.read()
         if event in (None, 'Exit'):	
             break
+        #Visualisations
         if event in ('Most common products'):
-            draw_figure(window['canvas'].TKCanvas, MostCommonProducts())
+            draw_figure(window['canvas'].TKCanvas, MostCommonProducts(Config.limit))
+            ToggleVisualization(window, 'canvas')
             continue
-        if event in ('Income'):
-            draw_figure(window['canvas'].TKCanvas, Income())
+        if event in ('Income summary'):
+            draw_figure(window['canvas'].TKCanvas, IncomeSummary())
+            ToggleVisualization(window, 'canvas')
             continue
         if event in ('Monthly Bilance'):
-            draw_figure(window['canvas'].TKCanvas, Monthly_Bilance()) 
+            draw_figure(window['canvas'].TKCanvas, MonthlyBilance())
+            ToggleVisualization(window, 'canvas')
             continue
         if event in ('TopTypeMonthly'):
             draw_figure(window['canvas'].TKCanvas, TopTypeMonthly())
+            ToggleVisualization(window, 'canvas')
             continue
         if event in (products):    
             #product=values[0] #Alternative way - use if there will be more events
             draw_figure(window['canvas'].TKCanvas, GivenProduct(event.partition("(")[0]))
+            ToggleVisualization(window, 'canvas')
             continue
         if event in (types):    
             #product=values[0] #Alternative way - use if there will be more events
             draw_figure(window['canvas'].TKCanvas, GivenType(event.partition("(")[0]))
+            ToggleVisualization(window, 'canvas')
+            continue
+        #Inserts
+        if event in ('Income'):
+            ToggleVisualization(window, 'Income_table')
             continue
     window.close()
 
