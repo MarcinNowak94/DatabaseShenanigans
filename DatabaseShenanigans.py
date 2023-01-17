@@ -19,6 +19,7 @@ from dateutil import parser
 
 import Config
 finances_db=Config.Finances.fullpath
+visibleelement=Config.startlayout
 
 #------- Incantations end here -------------------------------------------------
 
@@ -39,7 +40,20 @@ def Get_collection_fromdb(database, select_template, conditions):
         data_from_db=getfromdb(database,select)
         datasets.append((data_from_db, condition))
     return datasets
+def GetDBInfo(database):
+    db={}
+    for table in getfromdb(database, Config.Common['GetTables']):
+        table=table[0] #Get only text
+        select=Config.Common['GetColumns'].replace(Config.placeholder, table)
+        columns=getfromdb(database, select)
+        names=[]
+        for values in columns:
+            names.append(values[0])
+        db[table]={"name": table, "columns": names}
+    return db
 
+
+#Visualizations
 def Prepare_plot(set, title):
     plt.style.use('fivethirtyeight')
     figure, axes = plt.subplots()    #fig=figure, ax=axes object on figure
@@ -66,18 +80,6 @@ def draw_figure(canvas, figure, loc=(0, 0)):
     figure_canvas_agg.get_tk_widget().pack(fill='both', expand=True)
     return figure_canvas_agg
 
-def GetDBInfo(database):
-    db={}
-    for table in getfromdb(database, Config.Common['GetTables']):
-        table=table[0] #Get only text
-        select=Config.Common['GetColumns'].replace(Config.placeholder, table)
-        columns=getfromdb(database, select)
-        names=[]
-        for values in columns:
-            names.append(values[0])
-        db[table]={"name": table, "columns": names}
-    return db
-#Visualizations
 def IncomeSummary():
     income= Get_collection_fromdb(finances_db, 
                                   Config.placeholder, 
@@ -125,7 +127,7 @@ def Listfromtable(table, addvalues=True):
         element = value[0]+"("+str(value[2])+")" if addvalues else value[0]
         valuelist.append(element)
     return valuelist
-def TableToLayout(table, tables, visible=False):
+def TableToLayout(table, tables, visible=True):
     select=Config.Finances.selects['AnyTable']
     select=select.replace(Config.placeholder, tables[table]['name'])
     vals=getfromdb(finances_db, select)
@@ -133,13 +135,15 @@ def TableToLayout(table, tables, visible=False):
                         values=vals,
                         headings=tables[table]['columns'], 
                         num_rows=10,
+                        expand_x=True, 
+                        expand_y=True,
                         visible=True)
     return tableelement
-def ToggleVisualization(window, element):
-    for visualization in window.AllKeysDict:
-        if not visualization=='Menu':
-            window[visualization].update(visible=False)
+def ChangeLayout(window, element):
+    global visibleelement
+    window[visibleelement].update(visible=False)
     window[element].update(visible=True)
+    visibleelement=element
 
 def main():
     #layout preparation
@@ -165,67 +169,81 @@ def main():
                 'About...']]                    #TODO
             ]
 
-    visualization=[  #text and button stuff
-            [sg.Menu(key='Menu', menu_definition=menu)],
-            [sg.Canvas(key='canvas',
+    Visualization=[ [sg.Text('Visualizations')],
+                    [sg.Canvas(key='canvas',
                         size=(Config.plot_width, Config.plot_height-160),
                         expand_x=True, 
                         expand_y=True,
-                        visible=False)],
-            #[TableToLayout('Income', schema)]
-            #,[sg.Button('Exit')] #Not needed, user can simply close window  
-        ]
-    
-    edition=[  #text and button stuff
-            [sg.Menu(menu)] 
-        ]
-
+                        visible=False)]]
+    IncomeEdition=[ [sg.Text('Income Editor')],
+                    [TableToLayout('Income', schema)]]
+    ExpendituresEdition=[[sg.Text('Expenditures Editor')],[TableToLayout('Expenditures', schema)]]
+    BillsEdition=[[sg.Text('Bills Editor')],[TableToLayout('Bills', schema)]]
+    #Inspired by DEMO https://github.com/PySimpleGUI/PySimpleGUI/blob/master/DemoPrograms/Demo_Column_Elem_Swap_Entire_Window.py
+    layout=[
+        [sg.Menu(key='Menu', menu_definition=menu)],
+        [sg.Column(Visualization, visible=False, key='Visualization'), 
+         sg.Column(IncomeEdition, visible=False, key='IncomeEdition'), 
+         sg.Column(ExpendituresEdition, visible=False, key='ExpendituresEdition'),
+         sg.Column(BillsEdition, visible=False, key='BillsEdition')
+         ]
+    ]
 
     window = sg.Window('Budgeter', 
-                    visualization, 
+                    layout,
                     size=(Config.window_width, Config.window_height),
                     auto_size_buttons=False,
                     default_button_element_size=(Config.btn_width, Config.btn_height),
                     #TODO: fix, icon source: https://www.iconpacks.net/free-icon/money-bag-6384.html
                     titlebar_icon="E:\Projects\Python\DatabaseShenanigans\DatabaseShenanigans\Icon.ico",
-                    finalize=False
+                    finalize=True
                     )
-    
+    ChangeLayout(window, visibleelement)
+
     # Event Loop to process "events" and get the "values" of the inputs
     while True:
         event, values = window.read()
-        if event in (None, 'Exit'):	
+        if event in (None, 'Exit'):
             break
+        #Inserts
+        if event in ('Configure'):
+            #TODO ChangeLayout(window, 'Configure')
+            continue
+        if event in ('Expenditures'):
+            ChangeLayout(window, 'ExpendituresEdition')
+            continue
+        if event in ('Bills'):
+            ChangeLayout(window, 'BillsEdition')
+            continue
+        if event in ('Income'):
+            ChangeLayout(window, 'IncomeEdition')
+            continue
         #Visualisations
         if event in ('Most common products'):
             draw_figure(window['canvas'].TKCanvas, MostCommonProducts(Config.limit))
-            ToggleVisualization(window, 'canvas')
+            ChangeLayout(window, 'Visualization')
             continue
         if event in ('Income summary'):
             draw_figure(window['canvas'].TKCanvas, IncomeSummary())
-            ToggleVisualization(window, 'canvas')
+            ChangeLayout(window, 'Visualization')
             continue
         if event in ('Monthly Bilance'):
             draw_figure(window['canvas'].TKCanvas, MonthlyBilance())
-            ToggleVisualization(window, 'canvas')
+            ChangeLayout(window, 'Visualization')
             continue
         if event in ('TopTypeMonthly'):
             draw_figure(window['canvas'].TKCanvas, TopTypeMonthly())
-            ToggleVisualization(window, 'canvas')
+            ChangeLayout(window, 'Visualization')
             continue
         if event in (products):    
             #product=values[0] #Alternative way - use if there will be more events
             draw_figure(window['canvas'].TKCanvas, GivenProduct(event.partition("(")[0]))
-            ToggleVisualization(window, 'canvas')
+            ChangeLayout(window, 'Visualization')
             continue
         if event in (types):    
             #product=values[0] #Alternative way - use if there will be more events
             draw_figure(window['canvas'].TKCanvas, GivenType(event.partition("(")[0]))
-            ToggleVisualization(window, 'canvas')
-            continue
-        #Inserts
-        if event in ('Income'):
-            ToggleVisualization(window, 'Income_table')
+            ChangeLayout(window, 'Visualization')
             continue
     window.close()
 
