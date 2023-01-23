@@ -1,4 +1,6 @@
-#pip install matplotlib first y'all via: python -m pip install -U matplotlib
+# Required package to install
+# pip install matplotlib first y'all via: python -m pip install -U matplotlib
+
 #https://stackabuse.com/converting-strings-to-datetime-in-python/
 #https://matplotlib.org/gallery/style_sheets/fivethirtyeight.html#sphx-glr-gallery-style-sheets-fivethirtyeight-py
 #https://github.com/PySimpleGUI/PySimpleGUI/blob/master/DemoPrograms/Demo_Matplotlib.py
@@ -6,7 +8,7 @@ import sqlite3
 import time
 import datetime
 import base64
-import PySimpleGUI as sg
+import PySimpleGUI as sg    #Naming convention recommended by the author
 import pandas
 from enum import Enum
 
@@ -194,12 +196,11 @@ def main():
                     size=(Config.window_width, Config.window_height),
                     auto_size_buttons=False,
                     default_button_element_size=(Config.btn_width, Config.btn_height),
-                    #TODO: fix, icon source: https://www.iconpacks.net/free-icon/money-bag-6384.html
-                    titlebar_icon="E:\Projects\Python\DatabaseShenanigans\DatabaseShenanigans\Icon.ico",
                     finalize=True
                     )
+    window.SetIcon("E:\Projects\Python\DatabaseShenanigans\DatabaseShenanigans\Icon.ico")
     ChangeLayout(window, visibleelement)
-
+    
     # Event Loop to process "events" and get the "values" of the inputs
     while True:
         event, values = window.read()
