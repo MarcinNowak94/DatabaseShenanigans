@@ -144,8 +144,8 @@ def TableToLayout(table, tables, visible=True):
 def ChangeLayout(window, element):
     global visibleelement
     window[visibleelement].update(visible=False)
-    window[element].update(visible=True)
     visibleelement=element
+    window[visibleelement].update(visible=True)
 
 def main():
     #layout preparation
@@ -176,7 +176,7 @@ def main():
                         size=(Config.plot_width, Config.plot_height-160),
                         expand_x=True, 
                         expand_y=True,
-                        visible=False)]]
+                        visible=True)]]
     IncomeEdition=[ [sg.Text('Income Editor')],
                     [TableToLayout('Income', schema)]]
     ExpendituresEdition=[[sg.Text('Expenditures Editor')],[TableToLayout('Expenditures', schema)]]
@@ -184,10 +184,10 @@ def main():
     #Inspired by DEMO https://github.com/PySimpleGUI/PySimpleGUI/blob/master/DemoPrograms/Demo_Column_Elem_Swap_Entire_Window.py
     layout=[
         [sg.Menu(key='Menu', menu_definition=menu)],
-        [sg.Column(Visualization, visible=False, key='Visualization'), 
-         sg.Column(IncomeEdition, visible=False, key='IncomeEdition'), 
-         sg.Column(ExpendituresEdition, visible=False, key='ExpendituresEdition'),
-         sg.Column(BillsEdition, visible=False, key='BillsEdition')
+        [sg.Column(Visualization, visible=False, key='Visualization', expand_x=True, expand_y=True), 
+         sg.Column(IncomeEdition, visible=False, key='IncomeEdition', expand_x=True, expand_y=True), 
+         sg.Column(ExpendituresEdition, visible=False, key='ExpendituresEdition', expand_x=True, expand_y=True),
+         sg.Column(BillsEdition, visible=False, key='BillsEdition', expand_x=True, expand_y=True)
          ]
     ]
 
@@ -221,8 +221,8 @@ def main():
             continue
         #Visualisations
         if event in ('Most common products'):
-            draw_figure(window['canvas'].TKCanvas, MostCommonProducts(Config.limit))
             ChangeLayout(window, 'Visualization')
+            draw_figure(window['canvas'].TKCanvas, MostCommonProducts(Config.limit))
             continue
         if event in ('Income summary'):
             draw_figure(window['canvas'].TKCanvas, IncomeSummary())
