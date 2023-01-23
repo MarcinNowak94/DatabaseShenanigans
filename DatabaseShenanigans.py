@@ -22,7 +22,6 @@ from dateutil import parser
 import Config
 finances_db=Config.Finances.fullpath
 visibleelement=Config.startlayout
-
 #------- Incantations end here -------------------------------------------------
 
 #Database stuff
@@ -53,7 +52,7 @@ def GetDBInfo(database):
             names.append(values[0])
         db[table]={"name": table, "columns": names}
     return db
-
+schema=GetDBInfo(finances_db)
 
 #Visualizations
 def Prepare_plot(set, title):
@@ -135,12 +134,21 @@ def TableToLayout(table, tables, visible=True):
     vals=getfromdb(finances_db, select)
     tableelement=sg.Table(key=tables[table]['name']+'_table',
                         values=vals,
-                        headings=tables[table]['columns'], 
-                        num_rows=10,
+                        headings=tables[table]['columns'],
+                        auto_size_columns=True,
                         expand_x=True, 
                         expand_y=True,
-                        visible=True)
+                        visible=True,
+                        enable_click_events=True)   #Allows selection
     return tableelement
+def GenerateTableEditor(table):
+    global schema
+    editor=[ [sg.Text(table+' Editor'), 
+             sg.Button(key=table+'Import',
+                    button_text='Import data',
+                    tooltip='Import data from properly formatted CSV file. Example provided in resources directory.')],
+            [TableToLayout(table, schema)]]
+    return editor
 def ChangeLayout(window, element):
     global visibleelement
     window[visibleelement].update(visible=False)
@@ -149,7 +157,6 @@ def ChangeLayout(window, element):
 
 def main():
     #layout preparation
-    schema=GetDBInfo(finances_db)
     products=Listfromtable("ProductSummary")
     types=Listfromtable("TypeSummary")
     sg.theme('DarkAmber')
@@ -165,7 +172,10 @@ def main():
             ['Insert data',                     #TODO
                 ['Expenditures',                #TODO
                  'Bills',                       #TODO
-                 'Income']],                    #TODO
+                 'Income',                      #TODO
+                 'Types' ,                      #TODO
+                 'Products',                    #TODO
+                 'Miscelaneous',]],             #TODO
             ['Options',                         #TODO
                 ['Configure',                   #TODO
                 'About...']]                    #TODO
@@ -177,17 +187,26 @@ def main():
                         expand_x=True, 
                         expand_y=True,
                         visible=True)]]
-    IncomeEdition=[ [sg.Text('Income Editor')],
-                    [TableToLayout('Income', schema)]]
-    ExpendituresEdition=[[sg.Text('Expenditures Editor')],[TableToLayout('Expenditures', schema)]]
-    BillsEdition=[[sg.Text('Bills Editor')],[TableToLayout('Bills', schema)]]
+    IncomeEdition=GenerateTableEditor('Income')
+    ExpendituresEdition=GenerateTableEditor('Expenditures')
+    BillsEdition=GenerateTableEditor('Bills')
+    TypesEdition=GenerateTableEditor('ProductTypes')
+    ProductsEdition=GenerateTableEditor('Products')
+    MiscelaneousEdition=[[sg.Text('Miscelaneous Editor')],
+                        [sg.Button(key='AddType', 
+                                    button_text="Add type",
+                                    tooltip="Adds type of products to database")]]
+    
     #Inspired by DEMO https://github.com/PySimpleGUI/PySimpleGUI/blob/master/DemoPrograms/Demo_Column_Elem_Swap_Entire_Window.py
     layout=[
         [sg.Menu(key='Menu', menu_definition=menu)],
         [sg.Column(Visualization, visible=False, key='Visualization', expand_x=True, expand_y=True), 
          sg.Column(IncomeEdition, visible=False, key='IncomeEdition', expand_x=True, expand_y=True), 
          sg.Column(ExpendituresEdition, visible=False, key='ExpendituresEdition', expand_x=True, expand_y=True),
-         sg.Column(BillsEdition, visible=False, key='BillsEdition', expand_x=True, expand_y=True)
+         sg.Column(BillsEdition, visible=False, key='BillsEdition', expand_x=True, expand_y=True),
+         sg.Column(MiscelaneousEdition, visible=False, key='MiscelaneousEdition', expand_x=True, expand_y=True),
+         sg.Column(TypesEdition, visible=False, key='TypesEdition', expand_x=True, expand_y=True),
+         sg.Column(ProductsEdition, visible=False, key='ProductsEdition', expand_x=True, expand_y=True)
          ]
     ]
 
@@ -206,15 +225,31 @@ def main():
         event, values = window.read()
         if event in (None, 'Exit'):
             break
+        #Picked cell in table as per https://www.youtube.com/watch?v=ETHtvd-_FJg
+        if isinstance(event, tuple):
+            pass
+            continue
         #Inserts
         if event in ('Configure'):
             #TODO ChangeLayout(window, 'Configure')
+            continue
+        if event in ('Miscelaneous'):
+            ChangeLayout(window, 'MiscelaneousEdition')
+            continue
+        if event in ('Types'):
+            ChangeLayout(window, 'TypesEdition')
+            continue
+        if event in ('Products'):
+            ChangeLayout(window, 'ProductsEdition')
             continue
         if event in ('Expenditures'):
             ChangeLayout(window, 'ExpendituresEdition')
             continue
         if event in ('Bills'):
             ChangeLayout(window, 'BillsEdition')
+            continue
+        if event in ('Income'):
+            ChangeLayout(window, 'IncomeEdition')
             continue
         if event in ('Income'):
             ChangeLayout(window, 'IncomeEdition')
