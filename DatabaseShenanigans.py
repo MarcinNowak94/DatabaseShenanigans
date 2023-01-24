@@ -57,6 +57,9 @@ def getfromdb(database, select):
     rows=cursor.fetchall()
     connection.close()
     return rows
+def SendToDB(table, todb):
+    #TODO: Implement
+    pass
 def Get_collection_fromdb(database, select_template, conditions):
     #select use [CONDITION] as placeholder for condition 
     datasets=[]
@@ -78,6 +81,7 @@ def GetDBInfo(database):
         db[table]={"name": table, "columns": names}
     return db
 schema=GetDBInfo(finances_db)
+
 #Config.databases['Finances'].schema=schema
 #Visualizations
 def Prepare_plot(set, title):
@@ -187,21 +191,6 @@ def GetDataFromCSV(filename):
     headers=next(content)
     data=list(content)
     return (headers, data)
-def ImportPopup(popup):
-    filename=""
-    fileimport=[[sg.Text(key='Info', text="Select file to import")],
-                #TODO: Maybe user could import several files at once and application
-                #could discern by headers where to commit data
-                [sg.FileBrowse(key='FileBrowser', button_text='Browse', file_types=("*.csv"))]]
-    window=sg.Window("Import CSV file", layout=fileimport, modal=True)
-    while True:
-        event, values = window.read()
-        if event in (None, 'Exit', sg.WIN_CLOSED):
-            break
-        if event in ('FileBrowser'):
-            window[event]
-    window.close()
-    return filename
 #Modified edition from https://www.youtube.com/watch?v=ETHtvd-_FJg
 def EditCell(window, key, row, col, edition):
     global textvariable, editcell
@@ -359,9 +348,12 @@ def main():
             ChangeLayout(window, visualization_changes[event])
             continue
         if event in (popups):
-            print("%s would be run", popups[event])
-            ImportPopup(event)
-            pass #popup window reading data from file
+            table=event.partition("Import")[0]
+            filename=sg.popup_get_file('Document to open')
+            if filename is not (''):
+                data=GetDataFromCSV(filename)
+                todb=(Config.Finances.inserts[table], data)
+                SendToDB(table, todb)
             continue
         #Visualisations
         if event in ('Most common products'):
