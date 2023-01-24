@@ -24,6 +24,29 @@ finances_db=Config.Finances.fullpath
 visibleelement=Config.startlayout
 #------- Incantations end here -------------------------------------------------
 
+#Class for cells
+class Edition():
+    def __init__(self,
+                 table, 
+                 ID, 
+                 field, 
+                 newvalue,
+                 oldvalue): 
+        self.table = table
+        self.ID = ID
+        self.field = field
+        self.newvalue = newvalue
+        self.oldvalue = oldvalue
+
+    def __repr__(self): 
+        return "Table % s modified. ID: % s field: % s oldvalue: % s newvalue: % s" % (self.table, 
+                 self.ID, 
+                 self.field, 
+                 self.newvalue,
+                 self.oldvalue)
+
+edited_cells=[]     #Collection of editted cells
+
 #Database stuff
 def getfromdb(database, select):
     connection = sqlite3.connect(database)  #<TODO>Try this, repeat if connection fails
@@ -118,6 +141,49 @@ def MostCommonProducts(amount):
                                     product_list)
     return Prepare_plot(products, 'Products')
 
+#Modified edition from https://www.youtube.com/watch?v=ETHtvd-_FJg
+def edit_cell(window, key, row, col, edition):
+    global textvariable, editcell
+
+    def callback(event, row, col, text, key):
+        global editcell
+        widget = event.widget
+        if key == 'Focus_Out':
+            text = widget.get()     # Get typed text
+        widget.destroy()
+        widget.master.destroy()
+        values = list(table.item(row, 'values'))
+        values[col] = text
+        edition.newvalue=text
+        table.item(row, values=values)
+        edited_cells.append(edition)
+        editcell = False
+    
+
+    if editcell or row <= 0:
+        return
+
+    editcell = True
+    table = window[key].Widget
+    text = table.item(row, "values")[col]
+    x, y, width, height = table.bbox(row, col)
+
+    # Create a new container that acts as container for the editable text input widget
+    # TODO: Fix edit box offset
+    frame = sg.tk.Frame(window.TKroot)
+    frame.place(x=x, y=y, anchor="nw", width=width, height=height)
+    textvariable = sg.tk.StringVar()
+    textvariable.set(text)
+    entry = sg.tk.Entry(frame, textvariable=textvariable)
+    entry.pack()
+    entry.select_range(0, sg.tk.END)
+    entry.icursor(sg.tk.END)
+    entry.focus_force()
+    # When you click outside of the selected widget, everything is returned back to normal
+    # lambda e generates an empty function, which is turned into an event function 
+    # which corresponds to the "FocusOut" (clicking outside of the cell) event
+    entry.bind("<FocusOut>", lambda e, r=row, c=col, t=text, k='Focus_Out':callback(e, r, c, t, k))
+
 #Layout and menu ---------------------------------------------------------------
 def Listfromtable(table, addvalues=True):
     #Get list of common products from DB
@@ -151,12 +217,17 @@ def GenerateTableEditor(table):
     return editor
 def ChangeLayout(window, element):
     global visibleelement
+    if len(edited_cells)>0:
+        #TODO: Display popup window if user wants to commit changes to database
+        pass
     window[visibleelement].update(visible=False)
     visibleelement=element
     window[visibleelement].update(visible=True)
 
 def main():
     #layout preparation
+    global editcell
+    editcell=False
     products=Listfromtable("ProductSummary")
     types=Listfromtable("TypeSummary")
     sg.theme('DarkAmber')
@@ -169,7 +240,7 @@ def main():
                     ,[types],
                  'Product'
                     ,[products]]],
-            ['Insert data',                     #TODO
+            ['Insert data',
                 ['Expenditures',                #TODO
                  'Bills',                       #TODO
                  'Income',                      #TODO
@@ -219,7 +290,7 @@ def main():
                     )
     window.SetIcon("E:\Projects\Python\DatabaseShenanigans\DatabaseShenanigans\Icon.ico")
     ChangeLayout(window, visibleelement)
-    
+    changedcells="";
     # Event Loop to process "events" and get the "values" of the inputs
     while True:
         event, values = window.read()
@@ -227,7 +298,19 @@ def main():
             break
         #Picked cell in table as per https://www.youtube.com/watch?v=ETHtvd-_FJg
         if isinstance(event, tuple):
-            pass
+            widget=event[0]
+            table=widget.partition("_")[0]
+            row=event[2][0]
+            column=event[2][1]
+            if isinstance(row, int) and row>-1:
+                print(event[2])
+                record=window[widget].widget.item(row+1, 'values')
+                field=schema[table]['columns'][column]
+                edition = Edition(widget, record[0], field, '', record[column])
+                edit_cell(window,widget,row+1,column, edition)
+                print(edited_cells)
+            elif isinstance(event[2][0], None):
+                pass #add row
             continue
         #Inserts
         if event in ('Configure'):
