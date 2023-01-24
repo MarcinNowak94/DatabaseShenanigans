@@ -12,17 +12,19 @@ startlayout="Visualization"
 class Database():
     def __init__(self, 
                  fullpath,
+                 schema,
                  selects, 
                  inserts,
                  updates):
         self.fullpath = fullpath
+        self.schema = schema
         self.selects = selects
         self.inserts = inserts
         self.updates = updates
 
 Finances=Database(
     fullpath="E:\Projects\Python\DatabaseShenanigans\DatabaseShenanigans\Resources\Test_DataSet\Budgeter_testbase.sqlite",
-    
+    schema=[],
     selects={
         "AnyTable"              : "SELECT * FROM ["+placeholder+"]",
         "Expenditures"          : "SELECT * FROM [Expenditures_Enriched];",

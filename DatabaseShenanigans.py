@@ -77,7 +77,7 @@ def GetDBInfo(database):
         db[table]={"name": table, "columns": names}
     return db
 schema=GetDBInfo(finances_db)
-
+#Config.databases['Finances'].schema=schema
 #Visualizations
 def Prepare_plot(set, title):
     plt.style.use('fivethirtyeight')
@@ -251,8 +251,8 @@ def main():
                  'Bills',                       #TODO
                  'Income',                      #TODO
                  'Types' ,                      #TODO
-                 'Products',                    #TODO
-                 'Miscelaneous',]],             #TODO
+                 'Products',]],                 #TODO
+                 #'Miscelaneous',]],             #TODO
             ['Options',                         #TODO
                 ['Configure',                   #TODO
                 'About...']]                    #TODO
@@ -281,9 +281,9 @@ def main():
          sg.Column(IncomeEdition, visible=False, key='IncomeEdition', expand_x=True, expand_y=True), 
          sg.Column(ExpendituresEdition, visible=False, key='ExpendituresEdition', expand_x=True, expand_y=True),
          sg.Column(BillsEdition, visible=False, key='BillsEdition', expand_x=True, expand_y=True),
-         sg.Column(MiscelaneousEdition, visible=False, key='MiscelaneousEdition', expand_x=True, expand_y=True),
          sg.Column(TypesEdition, visible=False, key='TypesEdition', expand_x=True, expand_y=True),
          sg.Column(ProductsEdition, visible=False, key='ProductsEdition', expand_x=True, expand_y=True)
+         #,sg.Column(MiscelaneousEdition, visible=False, key='MiscelaneousEdition', expand_x=True, expand_y=True)
          ]
     ]
 
@@ -296,7 +296,25 @@ def main():
                     )
     window.SetIcon("E:\Projects\Python\DatabaseShenanigans\DatabaseShenanigans\Icon.ico")
     ChangeLayout(window, visibleelement)
-    changedcells="";
+
+    #Specify events
+    visualization_changes={
+        'Configure'     : 'Configure',
+        'Miscelaneous'  : 'MiscelaneousEdition',
+        'Types'         : 'TypesEdition',
+        'Products'      : 'ProductsEdition',
+        'Expenditures'  : 'ExpendituresEdition',
+        'Bills'         : 'BillsEdition',
+        'Income'        : 'IncomeEdition'
+    }
+    popups={
+        'TypesImport' : '',
+        'ProductsImport' : '',
+        'BillsImport' : '',
+        'IncomeImport' : '',
+        'ExpendituresImport' : '',
+    }
+
     # Event Loop to process "events" and get the "values" of the inputs
     while True:
         event, values = window.read()
@@ -319,29 +337,12 @@ def main():
                 pass #add row
             continue
         #Inserts
-        if event in ('Configure'):
-            #TODO ChangeLayout(window, 'Configure')
+        if event in (visualization_changes):
+            ChangeLayout(window, visualization_changes[event])
             continue
-        if event in ('Miscelaneous'):
-            ChangeLayout(window, 'MiscelaneousEdition')
-            continue
-        if event in ('Types'):
-            ChangeLayout(window, 'TypesEdition')
-            continue
-        if event in ('Products'):
-            ChangeLayout(window, 'ProductsEdition')
-            continue
-        if event in ('Expenditures'):
-            ChangeLayout(window, 'ExpendituresEdition')
-            continue
-        if event in ('Bills'):
-            ChangeLayout(window, 'BillsEdition')
-            continue
-        if event in ('Income'):
-            ChangeLayout(window, 'IncomeEdition')
-            continue
-        if event in ('Income'):
-            ChangeLayout(window, 'IncomeEdition')
+        if event in (popups):
+            print("%s would be run", popups[event])    
+            pass #popup window reading data from file
             continue
         #Visualisations
         if event in ('Most common products'):
@@ -360,12 +361,12 @@ def main():
             draw_figure(window['canvas'].TKCanvas, TopTypeMonthly())
             ChangeLayout(window, 'Visualization')
             continue
-        if event in (products):    
+        if event in (products):
             #product=values[0] #Alternative way - use if there will be more events
             draw_figure(window['canvas'].TKCanvas, GivenProduct(event.partition("(")[0]))
             ChangeLayout(window, 'Visualization')
             continue
-        if event in (types):    
+        if event in (types):
             #product=values[0] #Alternative way - use if there will be more events
             draw_figure(window['canvas'].TKCanvas, GivenType(event.partition("(")[0]))
             ChangeLayout(window, 'Visualization')
