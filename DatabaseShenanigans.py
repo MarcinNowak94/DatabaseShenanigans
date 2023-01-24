@@ -5,6 +5,7 @@
 #https://matplotlib.org/gallery/style_sheets/fivethirtyeight.html#sphx-glr-gallery-style-sheets-fivethirtyeight-py
 #https://github.com/PySimpleGUI/PySimpleGUI/blob/master/DemoPrograms/Demo_Matplotlib.py
 import sqlite3
+import csv
 import time
 import datetime
 import base64
@@ -141,6 +142,11 @@ def MostCommonProducts(amount):
                                     product_list)
     return Prepare_plot(products, 'Products')
 
+def GetDataFromCSV(filename):
+    content=csv.reader(open(filename,"r"))
+    headers=next(content)
+    data=list(content)
+    return (headers, data)
 #Modified edition from https://www.youtube.com/watch?v=ETHtvd-_FJg
 def edit_cell(window, key, row, col, edition):
     global textvariable, editcell
