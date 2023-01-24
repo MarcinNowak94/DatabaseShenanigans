@@ -50,16 +50,33 @@ class Edition():
 edited_cells=[]     #Collection of editted cells
 
 #Database stuff
+def PrepareStatement(query, values):
+    statement=query
+    for row in values:
+        statement+=('(')
+        for col in row:
+            statement+=("'"+str(col)+"',")
+        statement=statement.rstrip(",") #delete trailing comma
+        statement+=('),')
+    statement=statement.rstrip(",") #delete trailing comma
+    statement+=(';')
+    return statement
 def getfromdb(database, select):
-    connection = sqlite3.connect(database)  #<TODO>Try this, repeat if connection fails
+    #TODO: error handling
+    connection = sqlite3.connect(database)
     cursor = connection.cursor()
     cursor.execute(select)
     rows=cursor.fetchall()
     connection.close()
     return rows
-def SendToDB(table, todb):
-    #TODO: Implement
-    pass
+def SendToDB(database, todb):
+    #TODO: error handling
+    connection = sqlite3.connect(database)
+    statement=PrepareStatement(todb[0], todb[1])
+    connection.execute(statement)
+    connection.commit()
+    connection.close()
+
 def Get_collection_fromdb(database, select_template, conditions):
     #select use [CONDITION] as placeholder for condition 
     datasets=[]
@@ -315,7 +332,7 @@ def main():
         'Income'        : 'IncomeEdition'
     }
     popups={
-        'TypesImport' : '',
+        'ProductTypesImport' : '',
         'ProductsImport' : '',
         'BillsImport' : '',
         'IncomeImport' : '',
@@ -328,7 +345,7 @@ def main():
         if event in (None, 'Exit', sg.WIN_CLOSED):
             break
         #Picked cell in table as per https://www.youtube.com/watch?v=ETHtvd-_FJg
-        if isinstance(event, tuple):
+        if isinstance(event, tuple) and event not in (None):
             widget=event[0]
             table=widget.partition("_")[0]
             row=event[2][0]
@@ -350,10 +367,10 @@ def main():
         if event in (popups):
             table=event.partition("Import")[0]
             filename=sg.popup_get_file('Document to open')
-            if filename is not (''):
+            if filename not in (None, ''):                      #TODO: Validate propper path
                 data=GetDataFromCSV(filename)
-                todb=(Config.Finances.inserts[table], data)
-                SendToDB(table, todb)
+                todb=(Config.Finances.inserts[table], data[1])
+                SendToDB(Config.Finances.fullpath, todb)
             continue
         #Visualisations
         if event in ('Most common products'):

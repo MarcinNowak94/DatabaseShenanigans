@@ -51,9 +51,9 @@ Finances=Database(
         },
     
     inserts={
-        "Income"                : "INSERT INTO [Income] (DateTime, Amount, Source, Type, Comment) VALUES ",
-        "Bills"                 : "INSERT INTO [Bills]  (DateTime, Amount, Medium, Comment) VALUES ",
-        "Expenditures"          : "INSERT INTO [Expenditures_transitory]  (DateTime, Amount, Product, Comment) VALUES ",
+        "Income"                : "INSERT INTO [Income] (DateTime, Source, Amount, Type, Comment) VALUES ",
+        "Bills"                 : "INSERT INTO [Bills]  (DateTime, Medium, Amount, Comment) VALUES ",
+        "Expenditures"          : "INSERT INTO [Expenditures_transitory]  (DateTime, Product, Amount, Comment) VALUES ",
         "Products"              : "INSERT INTO [Products]  (Product, TypeID, Comment) VALUES ",
         "ProductTypes"          : "INSERT INTO [ProductTypes]  (Type, Comment) VALUES "        
     },
