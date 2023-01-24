@@ -8,6 +8,8 @@ plot_height = window_height-10
 limit=5 #top n products graphed
 placeholder="placeholder"
 startlayout="Visualization"
+icon="E:\Projects\Python\DatabaseShenanigans\DatabaseShenanigans\Icon.ico"
+theme='DarkAmber'
 
 class Database():
     def __init__(self, 
@@ -53,7 +55,7 @@ Finances=Database(
         "Bills"                 : "INSERT INTO [Bills]  (DateTime, Amount, Medium, Comment) VALUES ",
         "Expenditures"          : "INSERT INTO [Expenditures_transitory]  (DateTime, Amount, Product, Comment) VALUES ",
         "Products"              : "INSERT INTO [Products]  (Product, TypeID, Comment) VALUES ",
-        "ProductTypes"          : "INSERT INTO [ProductTypes]  (DateTime, Amount, Medium, Comment) VALUES "        
+        "ProductTypes"          : "INSERT INTO [ProductTypes]  (Type, Comment) VALUES "        
     },
 
     updates={

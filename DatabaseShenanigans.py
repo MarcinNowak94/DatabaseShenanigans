@@ -20,6 +20,7 @@ import matplotlib
 matplotlib.use('TkAgg')         #Use tinker to integrate matplotlib with GUI
 from dateutil import parser
 
+themes=sg.theme_list()
 import Config
 finances_db=Config.Finances.fullpath
 visibleelement=Config.startlayout
@@ -142,13 +143,67 @@ def MostCommonProducts(amount):
                                     product_list)
     return Prepare_plot(products, 'Products')
 
+#Layout and menu ---------------------------------------------------------------
+def Listfromtable(table, addvalues=True):
+    #Get list of common products from DB
+    values=getfromdb(finances_db, Config.Finances.selects[table])
+    valuelist=[]
+    
+    for value in values:
+        element = value[0]+"("+str(value[2])+")" if addvalues else value[0]
+        valuelist.append(element)
+    return valuelist
+def TableToLayout(table, tables, visible=True):
+    select=Config.Finances.selects['AnyTable']
+    select=select.replace(Config.placeholder, tables[table]['name'])
+    vals=getfromdb(finances_db, select)
+    tableelement=sg.Table(key=tables[table]['name']+'_table',
+                        values=vals,
+                        headings=tables[table]['columns'],
+                        auto_size_columns=True,
+                        expand_x=True, 
+                        expand_y=True,
+                        visible=True,
+                        enable_click_events=True)   #Allows selection
+    return tableelement
+def GenerateTableEditor(table):
+    global schema
+    editor=[ [sg.Text(table+' Editor'), 
+             sg.Button(key=table+'Import',
+                    button_text='Import data',
+                    tooltip='Import data from properly formatted CSV file. Example provided in resources directory.')],
+            [TableToLayout(table, schema)]]
+    return editor
+def ChangeLayout(window, element):
+    global visibleelement
+    if len(edited_cells)>0:
+        #TODO: Display popup window if user wants to commit changes to database
+        pass
+    window[visibleelement].update(visible=False)
+    visibleelement=element
+    window[visibleelement].update(visible=True)
 def GetDataFromCSV(filename):
     content=csv.reader(open(filename,"r"))
     headers=next(content)
     data=list(content)
     return (headers, data)
+def ImportPopup(popup):
+    filename=""
+    fileimport=[[sg.Text(key='Info', text="Select file to import")],
+                #TODO: Maybe user could import several files at once and application
+                #could discern by headers where to commit data
+                [sg.FileBrowse(key='FileBrowser', button_text='Browse', file_types=("*.csv"))]]
+    window=sg.Window("Import CSV file", layout=fileimport, modal=True)
+    while True:
+        event, values = window.read()
+        if event in (None, 'Exit', sg.WIN_CLOSED):
+            break
+        if event in ('FileBrowser'):
+            window[event]
+    window.close()
+    return filename
 #Modified edition from https://www.youtube.com/watch?v=ETHtvd-_FJg
-def edit_cell(window, key, row, col, edition):
+def EditCell(window, key, row, col, edition):
     global textvariable, editcell
 
     def callback(event, row, col, text, key):
@@ -190,53 +245,13 @@ def edit_cell(window, key, row, col, edition):
     # which corresponds to the "FocusOut" (clicking outside of the cell) event
     entry.bind("<FocusOut>", lambda e, r=row, c=col, t=text, k='Focus_Out':callback(e, r, c, t, k))
 
-#Layout and menu ---------------------------------------------------------------
-def Listfromtable(table, addvalues=True):
-    #Get list of common products from DB
-    values=getfromdb(finances_db, Config.Finances.selects[table])
-    valuelist=[]
-    
-    for value in values:
-        element = value[0]+"("+str(value[2])+")" if addvalues else value[0]
-        valuelist.append(element)
-    return valuelist
-def TableToLayout(table, tables, visible=True):
-    select=Config.Finances.selects['AnyTable']
-    select=select.replace(Config.placeholder, tables[table]['name'])
-    vals=getfromdb(finances_db, select)
-    tableelement=sg.Table(key=tables[table]['name']+'_table',
-                        values=vals,
-                        headings=tables[table]['columns'],
-                        auto_size_columns=True,
-                        expand_x=True, 
-                        expand_y=True,
-                        visible=True,
-                        enable_click_events=True)   #Allows selection
-    return tableelement
-def GenerateTableEditor(table):
-    global schema
-    editor=[ [sg.Text(table+' Editor'), 
-             sg.Button(key=table+'Import',
-                    button_text='Import data',
-                    tooltip='Import data from properly formatted CSV file. Example provided in resources directory.')],
-            [TableToLayout(table, schema)]]
-    return editor
-def ChangeLayout(window, element):
-    global visibleelement
-    if len(edited_cells)>0:
-        #TODO: Display popup window if user wants to commit changes to database
-        pass
-    window[visibleelement].update(visible=False)
-    visibleelement=element
-    window[visibleelement].update(visible=True)
-
 def main():
     #layout preparation
     global editcell
     editcell=False
     products=Listfromtable("ProductSummary")
     types=Listfromtable("TypeSummary")
-    sg.theme('DarkAmber')
+    sg.theme(Config.theme)
     menu = [['Visualizations', 
                 ['Most common products', 
                  'Income summary',
@@ -252,9 +267,12 @@ def main():
                  'Income',                      #TODO
                  'Types' ,                      #TODO
                  'Products',]],                 #TODO
-                 #'Miscelaneous',]],             #TODO
+                 #'Miscelaneous',]],            #TODO
             ['Options',                         #TODO
                 ['Configure',                   #TODO
+                #'Change Theme',                #TODO: Sadly not THAT easy
+                #    [themes],
+                'Version',
                 'About...']]                    #TODO
             ]
 
@@ -294,7 +312,7 @@ def main():
                     default_button_element_size=(Config.btn_width, Config.btn_height),
                     finalize=True
                     )
-    window.SetIcon("E:\Projects\Python\DatabaseShenanigans\DatabaseShenanigans\Icon.ico")
+    window.SetIcon(Config.icon)
     ChangeLayout(window, visibleelement)
 
     #Specify events
@@ -318,7 +336,7 @@ def main():
     # Event Loop to process "events" and get the "values" of the inputs
     while True:
         event, values = window.read()
-        if event in (None, 'Exit'):
+        if event in (None, 'Exit', sg.WIN_CLOSED):
             break
         #Picked cell in table as per https://www.youtube.com/watch?v=ETHtvd-_FJg
         if isinstance(event, tuple):
@@ -331,7 +349,7 @@ def main():
                 record=window[widget].widget.item(row+1, 'values')
                 field=schema[table]['columns'][column]
                 edition = Edition(widget, record[0], field, '', record[column])
-                edit_cell(window,widget,row+1,column, edition)
+                EditCell(window,widget,row+1,column, edition)
                 print(edited_cells)
             elif isinstance(event[2][0], None):
                 pass #add row
@@ -341,7 +359,8 @@ def main():
             ChangeLayout(window, visualization_changes[event])
             continue
         if event in (popups):
-            print("%s would be run", popups[event])    
+            print("%s would be run", popups[event])
+            ImportPopup(event)
             pass #popup window reading data from file
             continue
         #Visualisations
@@ -371,6 +390,14 @@ def main():
             draw_figure(window['canvas'].TKCanvas, GivenType(event.partition("(")[0]))
             ChangeLayout(window, 'Visualization')
             continue
+        if event in (themes):
+            #change theme requires some serious work, leaving it as it is for now
+            #https://github.com/PySimpleGUI/PySimpleGUI/issues/2437
+            pass    
+            continue
+        #Defined in docummentation
+        if event == 'Version':
+            sg.popup_scrolled(sg.get_versions())
     window.close()
 
 if __name__ == "__main__":
