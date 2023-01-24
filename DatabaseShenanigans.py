@@ -60,7 +60,7 @@ def PrepareStatement(query, values):
         statement+=('),')
     statement=statement.rstrip(",") #delete trailing comma
     statement+=(';')
-    return statement
+    return statement.encode('ascii')    #TODO: Check if this solves SQLite unicode character issues
 def getfromdb(database, select):
     #TODO: error handling
     connection = sqlite3.connect(database)
@@ -71,6 +71,7 @@ def getfromdb(database, select):
     return rows
 def SendToDB(database, todb):
     #TODO: error handling
+    #TODO: Fix encoding errors (Unicode)
     connection = sqlite3.connect(database)
     statement=PrepareStatement(todb[0], todb[1])
     connection.execute(statement)
@@ -174,13 +175,13 @@ def Listfromtable(table, addvalues=True):
         element = value[0]+"("+str(value[2])+")" if addvalues else value[0]
         valuelist.append(element)
     return valuelist
-def TableToLayout(table, tables, visible=True):
+def TableToLayout(table, visible=True):
     select=Config.Finances.selects['AnyTable']
-    select=select.replace(Config.placeholder, tables[table]['name'])
+    select=select.replace(Config.placeholder, table['name'])
     vals=getfromdb(finances_db, select)
-    tableelement=sg.Table(key=tables[table]['name']+'_table',
+    tableelement=sg.Table(key=table['name']+'_table',
                         values=vals,
-                        headings=tables[table]['columns'],
+                        headings=table['columns'],
                         auto_size_columns=True,
                         expand_x=True, 
                         expand_y=True,
@@ -192,9 +193,18 @@ def GenerateTableEditor(table):
     editor=[ [sg.Text(table+' Editor'), 
              sg.Button(key=table+'Import',
                     button_text='Import data',
-                    tooltip='Import data from properly formatted CSV file. Example provided in resources directory.')],
-            [TableToLayout(table, schema)]]
+                    tooltip='Import data from properly formatted CSV file. Example provided in resources directory.'),
+             sg.Button(key=table+'AddRecord',
+                        button_text='Add record',
+                        tooltip='Add single record to '+table+' table')],
+            [TableToLayout(schema[table])]]
     return editor
+def GenerateTableInputWindow(table):
+    layout=[
+        
+    ]
+    #window
+    #return window
 def ChangeLayout(window, element):
     global visibleelement
     if len(edited_cells)>0:
@@ -298,6 +308,7 @@ def main():
                                     button_text="Add type",
                                     tooltip="Adds type of products to database")]]
     
+    #TODO: Refresh after commiting data to table
     #Inspired by DEMO https://github.com/PySimpleGUI/PySimpleGUI/blob/master/DemoPrograms/Demo_Column_Elem_Swap_Entire_Window.py
     layout=[
         [sg.Menu(key='Menu', menu_definition=menu)],
@@ -338,7 +349,13 @@ def main():
         'IncomeImport' : '',
         'ExpendituresImport' : '',
     }
-
+    addrecord={
+        'ProductTypesAddRecord' : '',
+        'ProductsAddRecord' : '',
+        'BillsAddRecord' : '',
+        'IncomeAddRecord' : '',
+        'ExpendituresAddRecord' : '',
+    }
     # Event Loop to process "events" and get the "values" of the inputs
     while True:
         event, values = window.read()
@@ -371,6 +388,7 @@ def main():
                 data=GetDataFromCSV(filename)
                 todb=(Config.Finances.inserts[table], data[1])
                 SendToDB(Config.Finances.fullpath, todb)
+                #TODO: Refresh modified element data in layout
             continue
         #Visualisations
         if event in ('Most common products'):
