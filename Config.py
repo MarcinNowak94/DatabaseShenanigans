@@ -30,6 +30,7 @@ Finances=Database(
     selects={
         "AnyTable"              : "SELECT * FROM ["+placeholder+"]",
         "Expenditures"          : "SELECT * FROM [Expenditures_Enriched];",
+        "MonthlyBilance"        : "SELECT Month, Income FROM [MonthlyBilance];",
         "MonthlyExpenditures"   : "SELECT * FROM [MonthlyExpenditures];",
         "MonthlyIncome"         : "SELECT * FROM [MonthlyIncome];",
         "MonthlyBills"          : "SELECT * FROM [MonthlyBills];",

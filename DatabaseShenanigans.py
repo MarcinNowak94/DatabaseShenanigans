@@ -21,10 +21,18 @@ matplotlib.use('TkAgg')         #Use tinker to integrate matplotlib with GUI
 from dateutil import parser
 
 themes=sg.theme_list()
+app_version='0.1'
 import Config
 finances_db=Config.Finances.fullpath
 visibleelement=Config.startlayout
 #------- Incantations end here -------------------------------------------------
+sg.theme(Config.theme)
+sg.popup_animated(sg.DEFAULT_BASE64_LOADING_GIF, 
+                    message='Welcome to Budgeter', 
+                    title='Budgeter v'+app_version,
+                    no_titlebar=False,
+                    time_between_frames=100)
+
 
 #Class for cells
 class Edition():
@@ -134,7 +142,7 @@ def IncomeSummary():
                                   {Config.Finances.selects["MonthlyIncome"]})
     return Prepare_plot(income, 'Monthly income')
 def MonthlyBilance():
-    tables=('MonthlyIncome','MonthlyBills','MonthlyExpenditures')
+    tables=('MonthlyBilance','MonthlyIncome','MonthlyBills','MonthlyExpenditures')
     bilance=Get_collection_fromdb(finances_db,
                                   Config.Finances.selects['AnyTable'],
                                   tables)
@@ -199,12 +207,25 @@ def GenerateTableEditor(table):
                         tooltip='Add single record to '+table+' table')],
             [TableToLayout(schema[table])]]
     return editor
-def GenerateTableInputWindow(table):
-    layout=[
-        
-    ]
-    #window
-    #return window
+def TableInputWindow(name):
+    global schema
+    layout=[[sg.Text(key='Info', text="Input desired data")]]
+    #List slicing, bypass 1st element (usually ID)
+    for column in schema[name]['columns'][1:]:
+        #TODO: for *ID columns change to dropdown list 
+        layout.append([sg.Text(column), sg.Input(key=column)])
+    layout.append([sg.Ok(), sg.Cancel()])
+    window=sg.Window(title="Add row to "+str(name), layout=layout, modal=True, element_justification='r')
+    record=[]
+    while True:
+        event, values = window.read()
+        if event in (None, 'Cancel', sg.WIN_CLOSED):
+            break
+        if event in ('Ok'):
+            record=values
+            break
+    window.close()
+    return record
 def ChangeLayout(window, element):
     global visibleelement
     if len(edited_cells)>0:
@@ -278,18 +299,17 @@ def main():
                  'Product'
                     ,[products]]],
             ['Insert data',
-                ['Expenditures',                #TODO
-                 'Bills',                       #TODO
-                 'Income',                      #TODO
-                 'Types' ,                      #TODO
-                 'Products',]],                 #TODO
-                 #'Miscelaneous',]],            #TODO
+                ['Expenditures',                #TODO: Add Product dropdown
+                 'Bills',
+                 'Income',
+                 'Types' ,
+                 'Products',]],                 #TODO: Add TypeID dropdown
             ['Options',                         #TODO
-                ['Configure',                   #TODO
+                ['Configure',                   #TODO: Stretch - config
                 #'Change Theme',                #TODO: Sadly not THAT easy
                 #    [themes],
                 'Version',
-                'About...']]                    #TODO
+                'About...']]                    #TODO: Optional
             ]
 
     Visualization=[ [sg.Text('Visualizations')],
@@ -303,10 +323,6 @@ def main():
     BillsEdition=GenerateTableEditor('Bills')
     TypesEdition=GenerateTableEditor('ProductTypes')
     ProductsEdition=GenerateTableEditor('Products')
-    MiscelaneousEdition=[[sg.Text('Miscelaneous Editor')],
-                        [sg.Button(key='AddType', 
-                                    button_text="Add type",
-                                    tooltip="Adds type of products to database")]]
     
     #TODO: Refresh after commiting data to table
     #Inspired by DEMO https://github.com/PySimpleGUI/PySimpleGUI/blob/master/DemoPrograms/Demo_Column_Elem_Swap_Entire_Window.py
@@ -318,10 +334,11 @@ def main():
          sg.Column(BillsEdition, visible=False, key='BillsEdition', expand_x=True, expand_y=True),
          sg.Column(TypesEdition, visible=False, key='TypesEdition', expand_x=True, expand_y=True),
          sg.Column(ProductsEdition, visible=False, key='ProductsEdition', expand_x=True, expand_y=True)
-         #,sg.Column(MiscelaneousEdition, visible=False, key='MiscelaneousEdition', expand_x=True, expand_y=True)
          ]
     ]
 
+    #close loading #TODO: Idea: turn into function and log how long startup took
+    sg.popup_animated(None)
     window = sg.Window('Budgeter', 
                     layout,
                     size=(Config.window_width, Config.window_height),
@@ -390,6 +407,15 @@ def main():
                 SendToDB(Config.Finances.fullpath, todb)
                 #TODO: Refresh modified element data in layout
             continue
+        if event in (addrecord):
+            table=event.partition("AddRecord")[0]
+            record=TableInputWindow(table)
+            if record not in (None, ''):                      #TODO: Validate propper path
+                #todb=(Config.Finances.inserts[table], [record])
+                #SendToDB(Config.Finances.fullpath, todb)
+                print(record)
+                #TODO: Refresh modified element data in layout
+            continue
         #Visualisations
         if event in ('Most common products'):
             ChangeLayout(window, 'Visualization')
@@ -421,6 +447,10 @@ def main():
             #change theme requires some serious work, leaving it as it is for now
             #https://github.com/PySimpleGUI/PySimpleGUI/issues/2437
             pass    
+            continue
+        if event in ('About...'):
+            #TODO: Either use as splash screen or create simple sg.popup()
+            pass
             continue
         #Defined in docummentation
         if event == 'Version':
