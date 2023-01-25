@@ -68,7 +68,7 @@ def PrepareStatement(query, values):
         statement+=('),')
     statement=statement.rstrip(",") #delete trailing comma
     statement+=(';')
-    return statement.encode('ascii')    #TODO: Check if this solves SQLite unicode character issues
+    return statement
 def getfromdb(database, select):
     #TODO: error handling
     connection = sqlite3.connect(database)
@@ -235,11 +235,16 @@ def ChangeLayout(window, element):
     visibleelement=element
     window[visibleelement].update(visible=True)
 def GetDataFromCSV(filename):
-    content=csv.reader(open(filename,"r"))
+    #Fixing encoding error, normally encoding is set to system default. Temporary
+    #Bypass, ideally would deduce encoding using https://pypi.org/project/chardet/
+    content=csv.reader(open(filename,"r",encoding="utf-8"))
     headers=next(content)
     data=list(content)
     return (headers, data)
 #Modified edition from https://www.youtube.com/watch?v=ETHtvd-_FJg
+#Solution is using TKInter - lower level library under PYSimpleGUI, 
+#too advanced concept for the time being
+#TODO: Fix offset due to table being nested inside column element and added buttons
 def EditCell(window, key, row, col, edition):
     global textvariable, editcell
 
