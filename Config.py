@@ -35,8 +35,10 @@ selects={
                                 WHERE [Type] LIKE '%"+placeholder+"%' \
                                 GROUP BY SUBSTR([Datetime],1,7);",
     "ProductSummary"        : "SELECT * FROM [ProductSummary];",
-    "GetTables" : "SELECT [name] FROM sqlite_schema WHERE [type]='table';",
-    "GetColumns" : "SELECT [name] FROM PRAGMA_TABLE_INFO('"+placeholder+"');"
+    
+    #Common database selects
+    "GetTables"             : "SELECT [name] FROM sqlite_schema WHERE [type]='table';",
+    "GetColumns"            : "SELECT [name] FROM PRAGMA_TABLE_INFO('"+placeholder+"');",
     }
 
 inserts={

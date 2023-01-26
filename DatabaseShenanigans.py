@@ -24,6 +24,7 @@ themes=sg.theme_list()
 app_version='0.1'
 app_name='Budgeter'
 import Config
+chosentheme=Config.theme
 
 visibleelement=Config.startlayout
 #------- Class definitions -----------------------------------------------------
@@ -88,16 +89,19 @@ Finances=Database(
 )
 
 def PrepareStatement(query, values):
-    statement=query
+    newquery=query.split("(")[0]+('(')
+    #build query
+    for col in values[0]:
+        newquery+=(str(col)+", ")
+    newquery=newquery.rstrip(", ") #delete trailing comma
+    newquery+=") VALUES "
     for row in values:
-        statement+=('(')
+        newquery+=('(')
         for col in row:
-            statement+=("'"+str(col)+"',")
-        statement=statement.rstrip(",") #delete trailing comma
-        statement+=('),')
-    statement=statement.rstrip(",") #delete trailing comma
-    statement+=(';')
-    return statement
+            newquery+=("'"+str(row[col])+"',")
+        newquery=newquery.rstrip(",")+('),') #delete trailing comma
+    newquery=newquery.rstrip(",")+(';') #delete trailing comma
+    return newquery
 def GetFromDB(database, select):
     #TODO: error handling
     connection = sqlite3.connect(database)
@@ -396,7 +400,7 @@ def EditCell(window, key, row, col, edition):
     # which corresponds to the "FocusOut" (clicking outside of the cell) event
     entry.bind("<FocusOut>", lambda e, r=row, c=col, t=text, k='Focus_Out':callback(e, r, c, t, k))
 
-def PrepareWindow(theme=Config.theme):
+def PrepareWindow(theme=chosentheme):
     #layout preparation
     global products
     global types
@@ -412,7 +416,7 @@ def PrepareWindow(theme=Config.theme):
                     ,[types],
                  'Product'
                     ,[products]]],
-            ['Insert data',
+            ['Browse data',
                 #TODO: Add views as uneditable
                 ['Expenditures',                #TODO: Add Product dropdown
                  'Bills',
@@ -500,14 +504,16 @@ spending patterns, bilance and gruping expenditures by specific type or product.
 def main():
     #close loading #TODO: Idea: turn into function and log how long startup took
     #------- Incantations end here -------------------------------------------------
-    sg.theme(Config.theme)
+    global chosentheme
+    sg.theme(chosentheme)
     sg.popup_animated(sg.DEFAULT_BASE64_LOADING_GIF, 
                         message='Welcome to '+app_name, 
                         title=app_name+' v'+app_version,
                         no_titlebar=False,
                         time_between_frames=100)
 
-    window=PrepareWindow(theme=Config.theme)
+
+    window=PrepareWindow(theme=chosentheme)
     sg.popup_animated(None)
     #Specify events
     visualizations = PrepareCharts()
@@ -574,9 +580,12 @@ def main():
             record=TableInputWindow(table)
             if record not in (None, '', []):        
                 #TODO: Validate propper path
-                #todb=(Finances.inserts[table], [record])
-                #SendToDB(Finances.fullpath, todb)
+                todb=(Finances.inserts[table], [record])
+                SendToDB(Finances.fullpath, todb)
                 print(record)
+                #An attempt was made
+                window.close()
+                window=PrepareWindow(chosentheme)
                 #TODO: Refresh modified element data in layout
             continue
         #Visualisations
@@ -597,8 +606,9 @@ def main():
         if event in (themes):
             #change themes on the fly requires some serious work, https://github.com/PySimpleGUI/PySimpleGUI/issues/2437
             #workaround
+            chosentheme=event
             window.close()
-            window=PrepareWindow(event)
+            window=PrepareWindow(chosentheme)
             continue
         if event in ('About...', 'Manual'):
             #TODO: Either use as splash screen or create simple sg.popup()
