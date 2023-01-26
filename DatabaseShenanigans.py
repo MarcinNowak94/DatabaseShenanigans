@@ -36,10 +36,8 @@ sg.popup_animated(sg.DEFAULT_BASE64_LOADING_GIF,
 #------- Class definitions -----------------------------------------------------
 class Chart():
     def __init__(self,
-                 db,
                  selects,
-                 caption): 
-        self.db = db
+                 caption):
         self.selects = selects
         self.caption = caption
 #Class for cells
@@ -62,6 +60,15 @@ class Edition():
                  self.field, 
                  self.newvalue,
                  self.oldvalue)
+class ChartSelect():
+    def __init__(self,
+                 database,
+                 select,
+                 label
+                ):
+        self.database=str(database),
+        self.select=str(select),
+        self.label=str(label)
 
 edited_cells=[]     #Collection of editted cells
 
@@ -94,7 +101,14 @@ def SendToDB(database, todb):
     connection.commit()
     connection.close()
 
-#TODO: change to collection of selects as object (select, caption)
+#TODO: Fix Chart(CohartSelect()) fields being lists instead of string
+def GetCollectionFromDB_v2(collection):
+    #select use [CONDITION] as placeholder for condition 
+    datasets=[]
+    for select in collection.selects:
+        data_from_db=GetFromDB(select.database[0],select.select[0])
+        datasets.append((data_from_db, select.label))
+    return datasets
 def GetCollectionFromDB(database, select_template, conditions):
     #select use [CONDITION] as placeholder for condition 
     datasets=[]
@@ -159,10 +173,13 @@ all_products= Listfromtable("ProductSummary")
 product_list=[product.partition("(")[0] for product in all_products[0:Config.limit]] #TODO: Change so user can specify
 productselects=[]
 for product in product_list:
-    productselects.append(Config.Finances.selects['GivenProduct'].replace(Config.placeholder, product))
-
+    productselects.append(
+        ChartSelect(database=finances_db,
+            select=Config.Finances.selects['GivenProduct'].replace(Config.placeholder, product),
+            label=product
+            )
+        )
 mostcommonproducts= Chart(
-    db=finances_db,
     selects=productselects,
     caption='Products'
 )
@@ -172,24 +189,49 @@ if len(top_type):           #In case database is empty
 else:
     top_type='none'
 type_monthly= Config.Finances.selects['GivenType'].replace(Config.placeholder, top_type)
-toptypemonthly= Chart(
-db=finances_db,
-selects={type_monthly},
+toptypemonthly=Chart(
+    selects={
+        ChartSelect(
+        database=finances_db,
+        select=type_monthly,
+        label=top_type
+        )
+    },
 caption=top_type+' products across time'
 )
-monthlyincome= Chart(
-    db=finances_db,
-    selects={Config.Finances.selects["MonthlyIncome"]}, #Always prepare as collection 
+monthlyincome=Chart(
+    selects={
+        ChartSelect(
+        database=finances_db,
+        select=Config.Finances.selects["MonthlyIncome"],
+        label="Monthly income (label)"                          #TODO: (label) added for testing
+        )
+    },
     caption='Monthly income'
 )
-monthlybilance= Chart(
-    db=finances_db,
-    selects={Config.Finances.selects['MonthlyIncome'],
-             Config.Finances.selects['MonthlyBills'],
-             Config.Finances.selects['MonthlyExpenditures'],
-             Config.Finances.selects['MonthlyBilance']
-             },
-    #captions=('MonthlyBilance','MonthlyIncome','MonthlyBills','MonthlyExpenditures')
+monthlybilance=Chart(
+    selects={
+        ChartSelect(
+            database=finances_db,
+            select=Config.Finances.selects['MonthlyIncome'],
+            label='Income'
+        ),
+        ChartSelect(
+            database=finances_db,
+            select=Config.Finances.selects['MonthlyBills'],
+            label='Bills'
+        ),
+        ChartSelect(
+            database=finances_db,
+            select=Config.Finances.selects['MonthlyExpenditures'],
+            label='Expenditures'
+        ),
+        ChartSelect(
+            database=finances_db,
+            select=Config.Finances.selects['MonthlyBilance'],
+            label='Bilance'
+        )
+        },
     caption='Bilance'
 )
 
@@ -202,9 +244,8 @@ charts = {
 
 
 def Visualize(chart):
-    data= GetCollectionFromDB(chart.db, 
-                                  Config.placeholder, 
-                                  chart.selects)
+    ChartSelect
+    data= GetCollectionFromDB_v2(chart)
     return Prepare_plot(data, chart.caption)
 
 def GivenProduct(Product):
