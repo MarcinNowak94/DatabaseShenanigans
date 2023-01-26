@@ -41,7 +41,7 @@ Finances=Database(
         "GivenProduct"          : "SELECT SUBSTR([Datetime],1,7) AS [Month] \
                                           ,SUM([Amount])         AS [Amount] \
                                    FROM [Expenditures_Enriched] \
-                                   WHERE [Product] LIKE '%"+placeholder+"%' \
+                                   WHERE [Product]='"+placeholder+"' \
                                    GROUP BY SUBSTR([Datetime],1,7);",
         "GivenType"             : "SELECT SUBSTR([Datetime],1,7) AS [Month] \
                                           ,SUM([Amount])         AS [Amount] \

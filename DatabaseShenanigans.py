@@ -86,6 +86,7 @@ def SendToDB(database, todb):
     connection.commit()
     connection.close()
 
+#TODO: change to collection of selects as object (select, caption)
 def Get_collection_fromdb(database, select_template, conditions):
     #select use [CONDITION] as placeholder for condition 
     datasets=[]
@@ -136,8 +137,22 @@ def draw_figure(canvas, figure, loc=(0, 0)):
     figure_canvas_agg.get_tk_widget().pack(fill='both', expand=True)
     return figure_canvas_agg
 
+def Listfromtable(table, addvalues=True):
+    #Get list of common products from DB
+    values=getfromdb(finances_db, Config.Finances.selects[table])
+    valuelist=[]
+    
+    for value in values:
+        element = value[0]+"("+str(value[2])+")" if addvalues else value[0]
+        valuelist.append(element)
+    return valuelist
 
-#Class for cells
+all_products= Listfromtable("ProductSummary")
+product_list=[product.partition("(")[0] for product in all_products[0:Config.limit]] #TODO: Change so user can specify
+productselects=[]
+for product in product_list:
+    productselects.append(Config.Finances.selects['GivenProduct'].replace(Config.placeholder, product))
+
 class Chart():
     def __init__(self,
                  db,
@@ -148,13 +163,38 @@ class Chart():
         self.caption = caption
 
 monthlyincome= Chart(
-    finances_db,
-    {Config.Finances.selects["MonthlyIncome"]}, #Always prepare as collection 
+    db=finances_db,
+    selects={Config.Finances.selects["MonthlyIncome"]}, #Always prepare as collection 
     caption='Monthly income'
+)
+monthlybilance= Chart(
+    db=finances_db,
+    selects={Config.Finances.selects['MonthlyIncome'],
+             Config.Finances.selects['MonthlyBills'],
+             Config.Finances.selects['MonthlyExpenditures'],
+             Config.Finances.selects['MonthlyBilance']
+             },
+    #captions=('MonthlyBilance','MonthlyIncome','MonthlyBills','MonthlyExpenditures')
+    caption='Bilance'
+)
+mostcommonproducts= Chart(
+    db=finances_db,
+    selects=productselects,
+    caption='Products'
+)
+top_type= getfromdb(finances_db, Config.Finances.selects['MostCommonProduct'])[0][0]        #Access value directly
+type_monthly= Config.Finances.selects['GivenType'].replace(Config.placeholder, top_type)
+toptypemonthly= Chart(
+    db=finances_db,
+    selects={type_monthly},
+    caption=top_type+' products across time'
 )
 
 charts = {
-    'Income summary' : monthlyincome
+    'Income summary' : monthlyincome,
+    'Monthly Bilance' : monthlybilance,
+    'Most common products': mostcommonproducts,
+    'TopTypeMonthly' : toptypemonthly
 }
 
 
@@ -164,26 +204,6 @@ def Visualize(chart):
                                   chart.selects)
     return Prepare_plot(data, chart.caption)
 
-def IncomeSummary():
-    income= Get_collection_fromdb(finances_db, 
-                                  Config.placeholder, 
-                                  {Config.Finances.selects["MonthlyIncome"]})
-    return Prepare_plot(income, 'Monthly income')
-def MonthlyBilance():
-    tables=('MonthlyBilance','MonthlyIncome','MonthlyBills','MonthlyExpenditures')
-    bilance=Get_collection_fromdb(finances_db,
-                                  Config.Finances.selects['AnyTable'],
-                                  tables)
-    return Prepare_plot(bilance, 'Bilance')
-def TopTypeMonthly():
-    top_type= getfromdb(finances_db, 
-                        Config.Finances.selects['MostCommonProduct'])[0][0]        #Access value directly
-    type_monthly= Config.Finances.selects['GivenType'].replace(Config.placeholder, top_type) #replace placeholder while using
-    top_type_monthly= Get_collection_fromdb(finances_db, 
-                                            Config.placeholder, 
-                                            {type_monthly})
-    top_type_monthly=[(top_type_monthly[0][0], top_type)]  #Changing Select to type
-    return Prepare_plot(top_type_monthly, top_type+' products across time')
 def GivenProduct(Product):
     product_monthly=Config.Finances.selects['GivenProduct']
     product_stats=Get_collection_fromdb(finances_db, product_monthly, {Product})
@@ -192,25 +212,8 @@ def GivenType(type):
     type_monthly=Config.Finances.selects['GivenType']
     type_stats=Get_collection_fromdb(finances_db, type_monthly, {type})
     return Prepare_plot(type_stats, type)
-def MostCommonProducts(amount):
-    product_monthly=Config.Finances.selects['GivenProduct']
-    all_products= Listfromtable("ProductSummary")
-    product_list=[product[0] for product in all_products[0:amount]]
-    products= Get_collection_fromdb(finances_db, 
-                                    product_monthly, 
-                                    product_list)
-    return Prepare_plot(products, 'Products')
 
 #Layout and menu ---------------------------------------------------------------
-def Listfromtable(table, addvalues=True):
-    #Get list of common products from DB
-    values=getfromdb(finances_db, Config.Finances.selects[table])
-    valuelist=[]
-    
-    for value in values:
-        element = value[0]+"("+str(value[2])+")" if addvalues else value[0]
-        valuelist.append(element)
-    return valuelist
 def TableToLayout(table, visible=True):
     select=Config.Finances.selects['AnyTable']
     select=select.replace(Config.placeholder, table['name'])
@@ -450,21 +453,8 @@ def main():
                 #TODO: Refresh modified element data in layout
             continue
         #Visualisations
-        if event in ('Most common products'):
-            ChangeLayout(window, 'Visualization')
-            draw_figure(window['canvas'].TKCanvas, MostCommonProducts(Config.limit))
-            continue
-        if event in ('Income summary'):
+        if event in (charts):
             draw_figure(window['canvas'].TKCanvas, Visualize(charts[event]))
-            #draw_figure(window['canvas'].TKCanvas, IncomeSummary())
-            ChangeLayout(window, 'Visualization')
-            continue
-        if event in ('Monthly Bilance'):
-            draw_figure(window['canvas'].TKCanvas, MonthlyBilance())
-            ChangeLayout(window, 'Visualization')
-            continue
-        if event in ('TopTypeMonthly'):
-            draw_figure(window['canvas'].TKCanvas, TopTypeMonthly())
             ChangeLayout(window, 'Visualization')
             continue
         if event in (products):
