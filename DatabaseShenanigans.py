@@ -26,6 +26,7 @@ app_name='Budgeter'
 import Config
 chosentheme=Config.theme
 
+
 visibleelement=Config.startlayout
 #------- Class definitions -----------------------------------------------------
 class Database():
@@ -98,7 +99,9 @@ def PrepareStatement(query, values):
     for row in values:
         newquery+=('(')
         for col in row:
-            newquery+=("'"+str(row[col])+"',")
+            #For dropdown - user selects by name, DB expects ID
+            value = row[col][1] if isinstance(row[col], tuple) else row[col] 
+            newquery+=("'"+str(value)+"',")
         newquery=newquery.rstrip(",")+('),') #delete trailing comma
     newquery=newquery.rstrip(",")+(';') #delete trailing comma
     return newquery
@@ -172,14 +175,14 @@ def Listfromtable(table, addvalues=True):
     valuelist=[]
     
     for value in values:
-        element = value[0]+"("+str(value[2])+")" if addvalues else value[0]
+        element = value[1]+"("+str(value[4])+")" if addvalues else value[1]
         valuelist.append(element)
     return valuelist
 
 
 #------- Chart preparation -----------------------------------------------------
 types=Listfromtable("TypeSummary")          #used only in menu so far
-products= Listfromtable("ProductSummary")
+products=Listfromtable("ProductSummary")
 topproductlist=[product.partition("(")[0] for product in products[0:Config.limit]] #TODO: Change so user can specify
 top_type=GetFromDB(Finances.fullpath, Finances.selects['MostCommonProduct'])
 if len(top_type):           #In case database is empty
@@ -308,6 +311,8 @@ def TableToLayout(table):
     return tableelement
 def GenerateTableEditor(table):
     global Finances
+    #Edgecase - displaying view for user convenience
+    displaytable="Expenditures_Enriched" if table=='Expenditures' else table
     editor=[ [sg.Text(table+' Editor'), 
              sg.Button(key=table+'Import',
                     button_text='Import data',
@@ -315,15 +320,33 @@ def GenerateTableEditor(table):
              sg.Button(key=table+'AddRecord',
                         button_text='Add record',
                         tooltip='Add single record to '+table+' table')],
-            [TableToLayout(Finances.schema[table])]]
+            [TableToLayout(Finances.schema[displaytable])]]
     return editor
 def TableInputWindow(name):
     global Finances
     layout=[[sg.Text(key='Info', text="Input desired data")]]
     #List slicing, bypass 1st element (usually ID)
     for column in Finances.schema[name]['columns'][1:]:
-        #TODO: for *ID columns change to dropdown list 
-        layout.append([sg.Text(column), sg.Input(key=column)])
+        #for *ID columns change to dropdown list
+        if not column in ('ProductID', 'TypeID'):
+            layout.append([sg.Text(column), sg.Input(key=column)])
+        elif column=='ProductID':
+            select=column.rstrip('ID')+'Summary'
+            product_list=GetFromDB(Finances.fullpath, Finances.selects[select])
+            productlist=[]
+            for product in product_list:
+                productlist.append((product[1],product[0]))
+            #TODO: Fix length
+            layout.append([sg.Text(column), sg.DropDown(key=column, values=productlist, expand_x=True)])
+        else:
+            #Sanity check, should not run
+            select=column.rstrip('ID')+'Summary'
+            object_list=GetFromDB(Finances.fullpath, Finances.selects[select])
+            objects=[]
+            for object in object_list:
+                objects.append((object[1],object[0]))
+            layout.append([sg.Text(column), sg.DropDown(key=column, values=objects, expand_x=True)])
+
     layout.append([sg.Ok(), sg.Cancel()])
     window=sg.Window(title="Add row to "+str(name), 
                      layout=layout,
@@ -418,11 +441,11 @@ def PrepareWindow(theme=chosentheme):
                     ,[products]]],
             ['Browse data',
                 #TODO: Add views as uneditable
-                ['Expenditures',                #TODO: Add Product dropdown
+                ['Expenditures',
                  'Bills',
                  'Income',
                  'Types' ,
-                 'Products',]],                 #TODO: Add TypeID dropdown
+                 'Products',]],
             ['Options',                         #TODO
                 [#'Configure',                  #TODO: Stretch - config
                  'Change Theme',
@@ -470,6 +493,13 @@ can generate graph /n to aid taking more',
                             [sg.Text(key='Explaination_2',
                                      text='educated choices by visualizing \
 spending patterns, bilance and gruping expenditures by specific type or product.',
+                                     auto_size_text=True,
+                                     )],
+                            [sg.Text(key='Explaination_3',
+                                     text='Although not advised, advanced users \
+can connect directly to underlying database and update data via standard \
+DataBase Management System. Periodically back up your data and, use this \
+capability only if you REALLY know what You are doing.',
                                      auto_size_text=True,
                                      )]
                             ], justification='center')

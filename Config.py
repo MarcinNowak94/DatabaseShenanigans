@@ -23,7 +23,7 @@ selects={
     "MonthlyProducts"       : "SELECT * FROM [Monthly_common_products];",
     "MostCommonProduct"     : "SELECT [Type] FROM [ProductTypeSummary] LIMIT 1;",
     "Comparison"            : "SELECT * FROM [Ledger_comparison];",
-    "TypeSummary"           : "SELECT * FROM [ProductTypeSummary];",
+    "TypeSummary"           : "SELECT * FROM [TypeSummary];",
     "GivenProduct"          : "SELECT SUBSTR([Datetime],1,7) AS [Month] \
                                         ,SUM([Amount])         AS [Amount] \
                                 FROM [Expenditures_Enriched] \
@@ -37,14 +37,18 @@ selects={
     "ProductSummary"        : "SELECT * FROM [ProductSummary];",
     
     #Common database selects
-    "GetTables"             : "SELECT [name] FROM sqlite_schema WHERE [type]='table';",
+    "GetTables"             : "SELECT [name] FROM sqlite_schema WHERE [type]='table' OR [name]='Expenditures_Enriched';",
     "GetColumns"            : "SELECT [name] FROM PRAGMA_TABLE_INFO('"+placeholder+"');",
+
+    #Specific selects
+    "GetProductID"          : "SELECT [ID], [TypeID] FROM Products WHERE Product='"+placeholder+"';",
+    "GetTypeID"             : "SELECT [ID] FROM ProductTypes WHERE Type='"+placeholder+"';",
     }
 
 inserts={
     "Income"                : "INSERT INTO [Income] (DateTime, Source, Amount, Type, Comment) VALUES ",
     "Bills"                 : "INSERT INTO [Bills]  (DateTime, Medium, Amount, Comment) VALUES ",
-    "Expenditures"          : "INSERT INTO [Expenditures_transitory]  (DateTime, Product, Amount, Comment) VALUES ",
+    "Expenditures"          : "INSERT INTO [Expenditures]  (DateTime, Product, Amount, Comment) VALUES ",
     "Products"              : "INSERT INTO [Products]  (Product, TypeID, Comment) VALUES ",
     "ProductTypes"          : "INSERT INTO [ProductTypes]  (Type, Comment) VALUES "        
 }
