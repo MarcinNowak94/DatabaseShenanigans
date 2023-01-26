@@ -7,8 +7,9 @@ plot_height = window_height-10
 
 limit=5 #top n products graphed
 placeholder="placeholder"
-startlayout="Visualization"
-icon="E:\Projects\Python\DatabaseShenanigans\DatabaseShenanigans\Icon.ico"
+startlayout="About..."
+icon="E:\Projects\Python\DatabaseShenanigans\DatabaseShenanigans\Resources\Graphics\Icon.ico"
+logo="E:\Projects\Python\DatabaseShenanigans\DatabaseShenanigans\Resources\Graphics\Logo.png"
 theme='DarkAmber'
 
 fullpath="E:\Projects\Python\DatabaseShenanigans\DatabaseShenanigans\Resources\Test_DataSet\Budgeter_testbase.sqlite"

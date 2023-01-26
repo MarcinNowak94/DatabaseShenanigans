@@ -22,6 +22,7 @@ from dateutil import parser
 
 themes=sg.theme_list()
 app_version='0.1'
+app_name='Budgeter'
 import Config
 
 visibleelement=Config.startlayout
@@ -85,7 +86,6 @@ Finances=Database(
         "UPDATE"                : "UPDATE table SET fieldsandvalues WHERE ID=record"
     }
 )
-Finances.fullpath
 
 def PrepareStatement(query, values):
     statement=query
@@ -321,7 +321,11 @@ def TableInputWindow(name):
         #TODO: for *ID columns change to dropdown list 
         layout.append([sg.Text(column), sg.Input(key=column)])
     layout.append([sg.Ok(), sg.Cancel()])
-    window=sg.Window(title="Add row to "+str(name), layout=layout, modal=True, element_justification='r')
+    window=sg.Window(title="Add row to "+str(name), 
+                     layout=layout,
+                     icon=Config.icon,
+                     modal=True,
+                     element_justification='r')
     record=[]
     while True:
         event, values = window.read()
@@ -367,7 +371,6 @@ def EditCell(window, key, row, col, edition):
         table.item(row, values=values)
         edited_cells.append(edition)
         editcell = False
-    
 
     if editcell or row <= 0:
         return
@@ -417,11 +420,12 @@ def PrepareWindow(theme=Config.theme):
                  'Types' ,
                  'Products',]],                 #TODO: Add TypeID dropdown
             ['Options',                         #TODO
-                [#'Configure',                   #TODO: Stretch - config
+                [#'Configure',                  #TODO: Stretch - config
                  'Change Theme',
                     [themes],
                 'Version',
-                'About...']]                    #TODO: Optional
+                'About...',
+                'Manual']]                      #TODO: Wishful thinking - built in manual
             ]
 
     Visualization=[ [sg.Text('Visualizations')],
@@ -435,21 +439,54 @@ def PrepareWindow(theme=Config.theme):
     BillsEdition=GenerateTableEditor('Bills')
     TypesEdition=GenerateTableEditor('ProductTypes')
     ProductsEdition=GenerateTableEditor('Products')
-    
+    Splashscreen=[[sg.Column([[sg.Image(key='Logo', source=Config.logo)]], justification='center')],
+                  [sg.Column([[sg.Text( key='App info',
+                                        text='Project '+app_name+' v'+app_version+'. Poland, 2023.',
+                                        justification='center',
+                                        auto_size_text=True)]], justification='center')],
+                  [sg.Column([[sg.Text( key='Authors',
+                                        text='Authors: Nowak Marcin',
+                                        justification='center',
+                                        auto_size_text=True)]], justification='center')],
+                  [sg.Column([[sg.Text( key='Versions',
+                                        text='Used technologies:\n'+sg.get_versions(),
+                                        justification='center',
+                                        auto_size_text=True)]], justification='center')]
+                ]
+    UserManual=[[sg.Column([[sg.Text(key='Manual message',
+                                     text='Section under construction. Please come back soon ...',
+                                     auto_size_text=True)],
+                            #TODO: figure out how text could wrap correctly itself
+                            [sg.Text(key='Explaination_1',
+                                     text=app_name+' is a simple application \
+designed to aid users with managing their home budgets. After filling data user \
+can generate graph /n to aid taking more',
+                                     auto_size_text=True
+                                     )],
+                            [sg.Text(key='Explaination_2',
+                                     text='educated choices by visualizing \
+spending patterns, bilance and gruping expenditures by specific type or product.',
+                                     auto_size_text=True,
+                                     )]
+                            ], justification='center')
+                            ]]
+
     #TODO: Refresh after commiting data to table
     #Inspired by DEMO https://github.com/PySimpleGUI/PySimpleGUI/blob/master/DemoPrograms/Demo_Column_Elem_Swap_Entire_Window.py
     layout=[
         [sg.Menu(key='Menu', menu_definition=menu)],
-        [sg.Column(Visualization, visible=False, key='Visualization', expand_x=True, expand_y=True), 
-         sg.Column(IncomeEdition, visible=False, key='IncomeEdition', expand_x=True, expand_y=True), 
-         sg.Column(ExpendituresEdition, visible=False, key='ExpendituresEdition', expand_x=True, expand_y=True),
-         sg.Column(BillsEdition, visible=False, key='BillsEdition', expand_x=True, expand_y=True),
-         sg.Column(TypesEdition, visible=False, key='TypesEdition', expand_x=True, expand_y=True),
-         sg.Column(ProductsEdition, visible=False, key='ProductsEdition', expand_x=True, expand_y=True)
+        [sg.Column(Splashscreen, key='About...', visible=False, expand_x=True, expand_y=True),
+         sg.Column(UserManual, key='Manual', visible=False, expand_x=True, expand_y=True),
+         sg.Column(Visualization, key='Visualization', visible=False,  expand_x=True, expand_y=True), 
+         sg.Column(IncomeEdition, key='IncomeEdition', visible=False, expand_x=True, expand_y=True), 
+         sg.Column(ExpendituresEdition, key='ExpendituresEdition', visible=False, expand_x=True, expand_y=True),
+         sg.Column(BillsEdition, key='BillsEdition', visible=False, expand_x=True, expand_y=True),
+         sg.Column(TypesEdition, key='TypesEdition', visible=False, expand_x=True, expand_y=True),
+         sg.Column(ProductsEdition, key='ProductsEdition', visible=False, expand_x=True, expand_y=True)
          ]
     ]
-    window = sg.Window('Budgeter', 
-                    layout,
+    window = sg.Window(title=app_name+' v'+app_version, 
+                    layout=layout,
                     size=(Config.window_width, Config.window_height),
                     auto_size_buttons=False,
                     default_button_element_size=(Config.btn_width, Config.btn_height),
@@ -465,8 +502,8 @@ def main():
     #------- Incantations end here -------------------------------------------------
     sg.theme(Config.theme)
     sg.popup_animated(sg.DEFAULT_BASE64_LOADING_GIF, 
-                        message='Welcome to Budgeter', 
-                        title='Budgeter v'+app_version,
+                        message='Welcome to '+app_name, 
+                        title=app_name+' v'+app_version,
                         no_titlebar=False,
                         time_between_frames=100)
 
@@ -523,7 +560,9 @@ def main():
             continue
         if event in (popups):
             table=event.partition("Import")[0]
-            filename=sg.popup_get_file(title='Document to open', icon=Config.icon)
+            filename=sg.popup_get_file(title='Import CSV', 
+                                        message='Document to open', 
+                                        icon=Config.icon)
             if filename not in (None, ''):                      #TODO: Validate propper path
                 data=GetDataFromCSV(filename)
                 todb=(Finances.inserts[table], data[1])
@@ -533,7 +572,8 @@ def main():
         if event in (addrecord):
             table=event.partition("AddRecord")[0]
             record=TableInputWindow(table)
-            if record not in (None, ''):                      #TODO: Validate propper path
+            if record not in (None, '', []):        
+                #TODO: Validate propper path
                 #todb=(Finances.inserts[table], [record])
                 #SendToDB(Finances.fullpath, todb)
                 print(record)
@@ -560,9 +600,9 @@ def main():
             window.close()
             window=PrepareWindow(event)
             continue
-        if event in ('About...'):
+        if event in ('About...', 'Manual'):
             #TODO: Either use as splash screen or create simple sg.popup()
-            pass
+            ChangeLayout(window, event)
             continue
         #Defined in docummentation
         if event == 'Version':
