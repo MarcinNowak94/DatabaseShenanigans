@@ -25,14 +25,6 @@ app_version='0.1'
 import Config
 finances_db=Config.Finances.fullpath
 visibleelement=Config.startlayout
-#------- Incantations end here -------------------------------------------------
-sg.theme(Config.theme)
-sg.popup_animated(sg.DEFAULT_BASE64_LOADING_GIF, 
-                    message='Welcome to Budgeter', 
-                    title='Budgeter v'+app_version,
-                    no_titlebar=False,
-                    time_between_frames=100)
-
 #------- Class definitions -----------------------------------------------------
 class Chart():
     def __init__(self,
@@ -379,13 +371,13 @@ def EditCell(window, key, row, col, edition):
     # which corresponds to the "FocusOut" (clicking outside of the cell) event
     entry.bind("<FocusOut>", lambda e, r=row, c=col, t=text, k='Focus_Out':callback(e, r, c, t, k))
 
-def main():
+def PrepareWindow(theme=Config.theme):
     #layout preparation
     global products
     global types
     global editcell
     editcell=False
-    sg.theme(Config.theme)
+    sg.theme(theme)
     menu = [['Visualizations', 
                 ['Most common products', 
                  'Income summary',
@@ -403,9 +395,9 @@ def main():
                  'Types' ,
                  'Products',]],                 #TODO: Add TypeID dropdown
             ['Options',                         #TODO
-                ['Configure',                   #TODO: Stretch - config
-                #'Change Theme',                #TODO: Sadly not THAT easy
-                #    [themes],
+                [#'Configure',                   #TODO: Stretch - config
+                 'Change Theme',
+                    [themes],
                 'Version',
                 'About...']]                    #TODO: Optional
             ]
@@ -434,9 +426,6 @@ def main():
          sg.Column(ProductsEdition, visible=False, key='ProductsEdition', expand_x=True, expand_y=True)
          ]
     ]
-
-    #close loading #TODO: Idea: turn into function and log how long startup took
-    sg.popup_animated(None)
     window = sg.Window('Budgeter', 
                     layout,
                     size=(Config.window_width, Config.window_height),
@@ -446,7 +435,21 @@ def main():
                     )
     window.SetIcon(Config.icon)
     ChangeLayout(window, visibleelement)
+    
+    return window
 
+def main():
+    #close loading #TODO: Idea: turn into function and log how long startup took
+    #------- Incantations end here -------------------------------------------------
+    sg.theme(Config.theme)
+    sg.popup_animated(sg.DEFAULT_BASE64_LOADING_GIF, 
+                        message='Welcome to Budgeter', 
+                        title='Budgeter v'+app_version,
+                        no_titlebar=False,
+                        time_between_frames=100)
+
+    window=PrepareWindow(theme=Config.theme)
+    sg.popup_animated(None)
     #Specify events
     visualizations = PrepareCharts()
     visualization_changes={
@@ -530,9 +533,10 @@ def main():
             ChangeLayout(window, 'Visualization')
             continue
         if event in (themes):
-            #change theme requires some serious work, leaving it as it is for now
-            #https://github.com/PySimpleGUI/PySimpleGUI/issues/2437
-            pass    
+            #change themes on the fly requires some serious work, https://github.com/PySimpleGUI/PySimpleGUI/issues/2437
+            #workaround
+            window.close()
+            window=PrepareWindow(event)
             continue
         if event in ('About...'):
             #TODO: Either use as splash screen or create simple sg.popup()
