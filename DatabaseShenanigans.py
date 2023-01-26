@@ -158,83 +158,91 @@ def Listfromtable(table, addvalues=True):
         valuelist.append(element)
     return valuelist
 
-all_products= Listfromtable("ProductSummary")
-product_list=[product.partition("(")[0] for product in all_products[0:Config.limit]] #TODO: Change so user can specify
-productselects=[]
-for product in product_list:
-    productselects.append(
-        ChartSelect(database=finances_db,
-            select=Config.Finances.selects['GivenProduct'].replace(Config.placeholder, product),
-            label=product
-            )
-        )
-mostcommonproducts= Chart(
-    selects=productselects,
-    caption='Products'
-)
+
+#------- Chart preparation -----------------------------------------------------
+types=Listfromtable("TypeSummary")          #used only in menu so far
+products= Listfromtable("ProductSummary")
+topproductlist=[product.partition("(")[0] for product in products[0:Config.limit]] #TODO: Change so user can specify
 top_type=GetFromDB(finances_db, Config.Finances.selects['MostCommonProduct'])
 if len(top_type):           #In case database is empty
     top_type=top_type[0][0] #Access value directly
 else:
     top_type='none'
 type_monthly= Config.Finances.selects['GivenType'].replace(Config.placeholder, top_type)
-toptypemonthly=Chart(
-    selects={
-        ChartSelect(
-        database=finances_db,
-        select=type_monthly,
-        label=top_type
-        )
-    },
-caption=top_type+' products across time'
-)
-monthlyincome=Chart(
-    selects={
-        ChartSelect(
-        database=finances_db,
-        select=Config.Finances.selects["MonthlyIncome"],
-        label="Monthly income (label)"                          #TODO: (label) added for testing
-        )
-    },
-    caption='Monthly income'
-)
-monthlybilance=Chart(
-    selects={
-        ChartSelect(
+
+def PrepareCharts():
+    global topproductlist
+
+    productselects=[]
+    for product in topproductlist:
+        productselects.append(
+            ChartSelect(database=finances_db,
+                select=Config.Finances.selects['GivenProduct'].replace(Config.placeholder, product),
+                label=product
+                )
+            )
+
+    mostcommonproducts= Chart(
+        selects=productselects,
+        caption='Products'
+    )
+    
+    global top_type
+    global type_monthly
+
+    toptypemonthly=Chart(
+        selects={
+            ChartSelect(
             database=finances_db,
-            select=Config.Finances.selects['MonthlyIncome'],
-            label='Income'
-        ),
-        ChartSelect(
-            database=finances_db,
-            select=Config.Finances.selects['MonthlyBills'],
-            label='Bills'
-        ),
-        ChartSelect(
-            database=finances_db,
-            select=Config.Finances.selects['MonthlyExpenditures'],
-            label='Expenditures'
-        ),
-        ChartSelect(
-            database=finances_db,
-            select=Config.Finances.selects['MonthlyBilance'],
-            label='Bilance'
-        )
+            select=type_monthly,
+            label=top_type
+            )
         },
-    caption='Bilance'
-)
+    caption=top_type+' products across time'
+    )
+    monthlyincome=Chart(
+        selects={
+            ChartSelect(
+            database=finances_db,
+            select=Config.Finances.selects["MonthlyIncome"],
+            label="Monthly income (label)"                          #TODO: (label) added for testing
+            )
+        },
+        caption='Monthly income'
+    )
+    monthlybilance=Chart(
+        selects={
+            ChartSelect(
+                database=finances_db,
+                select=Config.Finances.selects['MonthlyIncome'],
+                label='Income'
+            ),
+            ChartSelect(
+                database=finances_db,
+                select=Config.Finances.selects['MonthlyBills'],
+                label='Bills'
+            ),
+            ChartSelect(
+                database=finances_db,
+                select=Config.Finances.selects['MonthlyExpenditures'],
+                label='Expenditures'
+            ),
+            ChartSelect(
+                database=finances_db,
+                select=Config.Finances.selects['MonthlyBilance'],
+                label='Bilance'
+            )
+            },
+        caption='Bilance'
+    )
 
-charts = {
-    'Income summary' : monthlyincome,
-    'Monthly Bilance' : monthlybilance,
-    'Most common products': mostcommonproducts,
-    'TopTypeMonthly' : toptypemonthly
-}
-
-
-def Visualize(chart):
-    data= GetCollectionFromDB(chart)
-    return Prepare_plot(data, chart.caption)
+    prepared_charts = {
+        'Income summary' : monthlyincome,
+        'Monthly Bilance' : monthlybilance,
+        'Most common products': mostcommonproducts,
+        'TopTypeMonthly' : toptypemonthly
+    }
+    return prepared_charts
 
 def GivenProduct(product):
     chart=Chart(
@@ -264,7 +272,10 @@ def GivenType(type):
     return Prepare_plot(product_stats, chart.caption)
 
 #Layout and menu ---------------------------------------------------------------
-def TableToLayout(table, visible=True):
+def Visualize(chart):
+    data= GetCollectionFromDB(chart)
+    return Prepare_plot(data, chart.caption)
+def TableToLayout(table):
     select=Config.Finances.selects['AnyTable']
     select=select.replace(Config.placeholder, table['name'])
     vals=GetFromDB(finances_db, select)
@@ -370,10 +381,10 @@ def EditCell(window, key, row, col, edition):
 
 def main():
     #layout preparation
+    global products
+    global types
     global editcell
     editcell=False
-    products=Listfromtable("ProductSummary")
-    types=Listfromtable("TypeSummary")
     sg.theme(Config.theme)
     menu = [['Visualizations', 
                 ['Most common products', 
@@ -437,9 +448,9 @@ def main():
     ChangeLayout(window, visibleelement)
 
     #Specify events
+    visualizations = PrepareCharts()
     visualization_changes={
         'Configure'     : 'Configure',
-        'Miscelaneous'  : 'MiscelaneousEdition',
         'Types'         : 'TypesEdition',
         'Products'      : 'ProductsEdition',
         'Expenditures'  : 'ExpendituresEdition',
@@ -504,8 +515,8 @@ def main():
                 #TODO: Refresh modified element data in layout
             continue
         #Visualisations
-        if event in (charts):
-            draw_figure(window['canvas'].TKCanvas, Visualize(charts[event]))
+        if event in (visualizations):
+            draw_figure(window['canvas'].TKCanvas, Visualize(visualizations[event]))
             ChangeLayout(window, 'Visualization')
             continue
         if event in (products):
