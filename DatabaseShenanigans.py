@@ -40,8 +40,7 @@ class Chart():
                  caption):
         self.selects = selects
         self.caption = caption
-#Class for cells
-class Edition():
+class CellEdition():
     def __init__(self,
                  table, 
                  ID, 
@@ -102,21 +101,11 @@ def SendToDB(database, todb):
     connection.close()
 
 #TODO: Fix Chart(CohartSelect()) fields being lists instead of string
-def GetCollectionFromDB_v2(collection):
-    #select use [CONDITION] as placeholder for condition 
+def GetCollectionFromDB(collection):
     datasets=[]
     for select in collection.selects:
         data_from_db=GetFromDB(select.database[0],select.select[0])
         datasets.append((data_from_db, select.label))
-    return datasets
-def GetCollectionFromDB(database, select_template, conditions):
-    #select use [CONDITION] as placeholder for condition 
-    datasets=[]
-    select=''
-    for condition in conditions:
-        select=select_template.replace(Config.placeholder,condition)
-        data_from_db=GetFromDB(database,select)
-        datasets.append((data_from_db, condition))
     return datasets
 def GetDBInfo(database):
     db={}
@@ -244,18 +233,35 @@ charts = {
 
 
 def Visualize(chart):
-    ChartSelect
-    data= GetCollectionFromDB_v2(chart)
+    data= GetCollectionFromDB(chart)
     return Prepare_plot(data, chart.caption)
 
-def GivenProduct(Product):
-    product_monthly=Config.Finances.selects['GivenProduct']
-    product_stats=GetCollectionFromDB(finances_db, product_monthly, {Product})
-    return Prepare_plot(product_stats, Product)
+def GivenProduct(product):
+    chart=Chart(
+        selects={
+            ChartSelect(
+            database=finances_db,
+            select=Config.Finances.selects['GivenProduct'].replace(Config.placeholder, product),
+            label=product
+            )
+        },
+        caption=product+' across time'
+    )
+    product_stats=GetCollectionFromDB(chart)
+    return Prepare_plot(product_stats, chart.caption)
 def GivenType(type):
-    type_monthly=Config.Finances.selects['GivenType']
-    type_stats=GetCollectionFromDB(finances_db, type_monthly, {type})
-    return Prepare_plot(type_stats, type)
+    chart=Chart(
+        selects={
+            ChartSelect(
+            database=finances_db,
+            select=Config.Finances.selects['GivenType'].replace(Config.placeholder, type),
+            label=type
+            )
+        },
+        caption=type+' across time'
+    )
+    product_stats=GetCollectionFromDB(chart)
+    return Prepare_plot(product_stats, chart.caption)
 
 #Layout and menu ---------------------------------------------------------------
 def TableToLayout(table, visible=True):
@@ -379,6 +385,7 @@ def main():
                  'Product'
                     ,[products]]],
             ['Insert data',
+                #TODO: Add views as uneditable
                 ['Expenditures',                #TODO: Add Product dropdown
                  'Bills',
                  'Income',
@@ -468,7 +475,7 @@ def main():
                 print(event[2])
                 record=window[widget].widget.item(row+1, 'values')
                 field=schema[table]['columns'][column]
-                edition = Edition(widget, record[0], field, '', record[column])
+                edition = CellEdition(widget, record[0], field, '', record[column])
                 EditCell(window,widget,row+1,column, edition)
                 print(edited_cells)
             elif isinstance(event[2][0], None):
