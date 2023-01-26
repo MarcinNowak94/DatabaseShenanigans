@@ -136,6 +136,34 @@ def draw_figure(canvas, figure, loc=(0, 0)):
     figure_canvas_agg.get_tk_widget().pack(fill='both', expand=True)
     return figure_canvas_agg
 
+
+#Class for cells
+class Chart():
+    def __init__(self,
+                 db,
+                 selects,
+                 caption): 
+        self.db = db
+        self.selects = selects
+        self.caption = caption
+
+monthlyincome= Chart(
+    finances_db,
+    {Config.Finances.selects["MonthlyIncome"]}, #Always prepare as collection 
+    caption='Monthly income'
+)
+
+charts = {
+    'Income summary' : monthlyincome
+}
+
+
+def Visualize(chart):
+    data= Get_collection_fromdb(chart.db, 
+                                  Config.placeholder, 
+                                  chart.selects)
+    return Prepare_plot(data, chart.caption)
+
 def IncomeSummary():
     income= Get_collection_fromdb(finances_db, 
                                   Config.placeholder, 
@@ -427,7 +455,8 @@ def main():
             draw_figure(window['canvas'].TKCanvas, MostCommonProducts(Config.limit))
             continue
         if event in ('Income summary'):
-            draw_figure(window['canvas'].TKCanvas, IncomeSummary())
+            draw_figure(window['canvas'].TKCanvas, Visualize(charts[event]))
+            #draw_figure(window['canvas'].TKCanvas, IncomeSummary())
             ChangeLayout(window, 'Visualization')
             continue
         if event in ('Monthly Bilance'):

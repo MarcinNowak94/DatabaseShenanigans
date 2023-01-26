@@ -1,5 +1,5 @@
-window_width =  1920 #1024
-window_height =  1080 #768
+window_width =  1024 #1920 #1024
+window_height =  768 #1080 #768
 btn_width = 20
 btn_height = 1
 plot_width = window_width-btn_width-2
