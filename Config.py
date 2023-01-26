@@ -11,62 +11,37 @@ startlayout="Visualization"
 icon="E:\Projects\Python\DatabaseShenanigans\DatabaseShenanigans\Icon.ico"
 theme='DarkAmber'
 
-class Database():
-    def __init__(self, 
-                 fullpath,
-                 schema,
-                 selects, 
-                 inserts,
-                 updates):
-        self.fullpath = fullpath
-        self.schema = schema
-        self.selects = selects
-        self.inserts = inserts
-        self.updates = updates
-
-Finances=Database(
-    fullpath="E:\Projects\Python\DatabaseShenanigans\DatabaseShenanigans\Resources\Test_DataSet\Budgeter_testbase.sqlite",
-    schema=[],
-    selects={
-        "AnyTable"              : "SELECT * FROM ["+placeholder+"]",
-        "Expenditures"          : "SELECT * FROM [Expenditures_Enriched];",
-        "MonthlyBilance"        : "SELECT Month, Income FROM [MonthlyBilance];",
-        "MonthlyExpenditures"   : "SELECT * FROM [MonthlyExpenditures];",
-        "MonthlyIncome"         : "SELECT * FROM [MonthlyIncome];",
-        "MonthlyBills"          : "SELECT * FROM [MonthlyBills];",
-        "MonthlyProducts"       : "SELECT * FROM [Monthly_common_products];",
-        "MostCommonProduct"     : "SELECT [Type] FROM [ProductTypeSummary] LIMIT 1;",
-        "Comparison"            : "SELECT * FROM [Ledger_comparison];",
-        "TypeSummary"           : "SELECT * FROM [ProductTypeSummary];",
-        "GivenProduct"          : "SELECT SUBSTR([Datetime],1,7) AS [Month] \
-                                          ,SUM([Amount])         AS [Amount] \
-                                   FROM [Expenditures_Enriched] \
-                                   WHERE [Product]='"+placeholder+"' \
-                                   GROUP BY SUBSTR([Datetime],1,7);",
-        "GivenType"             : "SELECT SUBSTR([Datetime],1,7) AS [Month] \
-                                          ,SUM([Amount])         AS [Amount] \
-                                   FROM [Expenditures_Enriched] \
-                                   WHERE [Type] LIKE '%"+placeholder+"%' \
-                                   GROUP BY SUBSTR([Datetime],1,7);",
-        "ProductSummary"        : "SELECT * FROM [ProductSummary];",
-        },
-    
-    inserts={
-        "Income"                : "INSERT INTO [Income] (DateTime, Source, Amount, Type, Comment) VALUES ",
-        "Bills"                 : "INSERT INTO [Bills]  (DateTime, Medium, Amount, Comment) VALUES ",
-        "Expenditures"          : "INSERT INTO [Expenditures_transitory]  (DateTime, Product, Amount, Comment) VALUES ",
-        "Products"              : "INSERT INTO [Products]  (Product, TypeID, Comment) VALUES ",
-        "ProductTypes"          : "INSERT INTO [ProductTypes]  (Type, Comment) VALUES "        
-    },
-
-    updates={
-        "UPDATE"                : "UPDATE table SET fieldsandvalues WHERE ID=record"
-    }
-    )
-#Non-specific database selects
-Common={
+fullpath="E:\Projects\Python\DatabaseShenanigans\DatabaseShenanigans\Resources\Test_DataSet\Budgeter_testbase.sqlite"
+selects={
+    "AnyTable"              : "SELECT * FROM ["+placeholder+"]",
+    "Expenditures"          : "SELECT * FROM [Expenditures_Enriched];",
+    "MonthlyBilance"        : "SELECT Month, Income FROM [MonthlyBilance];",
+    "MonthlyExpenditures"   : "SELECT * FROM [MonthlyExpenditures];",
+    "MonthlyIncome"         : "SELECT * FROM [MonthlyIncome];",
+    "MonthlyBills"          : "SELECT * FROM [MonthlyBills];",
+    "MonthlyProducts"       : "SELECT * FROM [Monthly_common_products];",
+    "MostCommonProduct"     : "SELECT [Type] FROM [ProductTypeSummary] LIMIT 1;",
+    "Comparison"            : "SELECT * FROM [Ledger_comparison];",
+    "TypeSummary"           : "SELECT * FROM [ProductTypeSummary];",
+    "GivenProduct"          : "SELECT SUBSTR([Datetime],1,7) AS [Month] \
+                                        ,SUM([Amount])         AS [Amount] \
+                                FROM [Expenditures_Enriched] \
+                                WHERE [Product]='"+placeholder+"' \
+                                GROUP BY SUBSTR([Datetime],1,7);",
+    "GivenType"             : "SELECT SUBSTR([Datetime],1,7) AS [Month] \
+                                        ,SUM([Amount])         AS [Amount] \
+                                FROM [Expenditures_Enriched] \
+                                WHERE [Type] LIKE '%"+placeholder+"%' \
+                                GROUP BY SUBSTR([Datetime],1,7);",
+    "ProductSummary"        : "SELECT * FROM [ProductSummary];",
     "GetTables" : "SELECT [name] FROM sqlite_schema WHERE [type]='table';",
     "GetColumns" : "SELECT [name] FROM PRAGMA_TABLE_INFO('"+placeholder+"');"
-}
+    }
 
-databases=[Finances, Common];
+inserts={
+    "Income"                : "INSERT INTO [Income] (DateTime, Source, Amount, Type, Comment) VALUES ",
+    "Bills"                 : "INSERT INTO [Bills]  (DateTime, Medium, Amount, Comment) VALUES ",
+    "Expenditures"          : "INSERT INTO [Expenditures_transitory]  (DateTime, Product, Amount, Comment) VALUES ",
+    "Products"              : "INSERT INTO [Products]  (Product, TypeID, Comment) VALUES ",
+    "ProductTypes"          : "INSERT INTO [ProductTypes]  (Type, Comment) VALUES "        
+}

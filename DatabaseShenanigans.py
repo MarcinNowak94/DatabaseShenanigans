@@ -23,9 +23,21 @@ from dateutil import parser
 themes=sg.theme_list()
 app_version='0.1'
 import Config
-finances_db=Config.Finances.fullpath
+
 visibleelement=Config.startlayout
 #------- Class definitions -----------------------------------------------------
+class Database():
+    def __init__(self, 
+                 fullpath,
+                 schema,
+                 selects, 
+                 inserts,
+                 updates):
+        self.fullpath = fullpath
+        self.schema = schema
+        self.selects = selects
+        self.inserts = inserts
+        self.updates = updates
 class Chart():
     def __init__(self,
                  selects,
@@ -63,7 +75,18 @@ class ChartSelect():
 
 edited_cells=[]     #Collection of editted cells
 
-#------- Database stuff --------------------------------------------------------
+#------- Database interaction --------------------------------------------------
+Finances=Database(
+    fullpath=Config.fullpath,
+    schema=[],
+    selects=Config.selects,
+    inserts=Config.inserts,
+    updates={
+        "UPDATE"                : "UPDATE table SET fieldsandvalues WHERE ID=record"
+    }
+)
+Finances.fullpath
+
 def PrepareStatement(query, values):
     statement=query
     for row in values:
@@ -101,18 +124,17 @@ def GetCollectionFromDB(collection):
     return datasets
 def GetDBInfo(database):
     db={}
-    for table in GetFromDB(database, Config.Common['GetTables']):
+    for table in GetFromDB(database, Finances.selects['GetTables']):
         table=table[0] #Get only text
-        select=Config.Common['GetColumns'].replace(Config.placeholder, table)
+        select=Finances.selects['GetColumns'].replace(Config.placeholder, table)
         columns=GetFromDB(database, select)
         names=[]
         for values in columns:
             names.append(values[0])
         db[table]={"name": table, "columns": names}
     return db
-schema=GetDBInfo(finances_db)
+Finances.schema=GetDBInfo(Finances.fullpath)
 
-#Config.databases['Finances'].schema=schema
 #Visualizations
 def Prepare_plot(set, title):
     plt.style.use('fivethirtyeight')
@@ -142,7 +164,7 @@ def draw_figure(canvas, figure, loc=(0, 0)):
 
 def Listfromtable(table, addvalues=True):
     #Get list of common products from DB
-    values=GetFromDB(finances_db, Config.Finances.selects[table])
+    values=GetFromDB(Finances.fullpath, Finances.selects[table])
     valuelist=[]
     
     for value in values:
@@ -155,12 +177,12 @@ def Listfromtable(table, addvalues=True):
 types=Listfromtable("TypeSummary")          #used only in menu so far
 products= Listfromtable("ProductSummary")
 topproductlist=[product.partition("(")[0] for product in products[0:Config.limit]] #TODO: Change so user can specify
-top_type=GetFromDB(finances_db, Config.Finances.selects['MostCommonProduct'])
+top_type=GetFromDB(Finances.fullpath, Finances.selects['MostCommonProduct'])
 if len(top_type):           #In case database is empty
     top_type=top_type[0][0] #Access value directly
 else:
     top_type='none'
-type_monthly= Config.Finances.selects['GivenType'].replace(Config.placeholder, top_type)
+type_monthly= Finances.selects['GivenType'].replace(Config.placeholder, top_type)
 
 def PrepareCharts():
     global topproductlist
@@ -168,8 +190,8 @@ def PrepareCharts():
     productselects=[]
     for product in topproductlist:
         productselects.append(
-            ChartSelect(database=finances_db,
-                select=Config.Finances.selects['GivenProduct'].replace(Config.placeholder, product),
+            ChartSelect(database=Finances.fullpath,
+                select=Finances.selects['GivenProduct'].replace(Config.placeholder, product),
                 label=product
                 )
             )
@@ -185,7 +207,7 @@ def PrepareCharts():
     toptypemonthly=Chart(
         selects={
             ChartSelect(
-            database=finances_db,
+            database=Finances.fullpath,
             select=type_monthly,
             label=top_type
             )
@@ -195,8 +217,8 @@ def PrepareCharts():
     monthlyincome=Chart(
         selects={
             ChartSelect(
-            database=finances_db,
-            select=Config.Finances.selects["MonthlyIncome"],
+            database=Finances.fullpath,
+            select=Finances.selects["MonthlyIncome"],
             label="Monthly income (label)"                          #TODO: (label) added for testing
             )
         },
@@ -205,23 +227,23 @@ def PrepareCharts():
     monthlybilance=Chart(
         selects={
             ChartSelect(
-                database=finances_db,
-                select=Config.Finances.selects['MonthlyIncome'],
+                database=Finances.fullpath,
+                select=Finances.selects['MonthlyIncome'],
                 label='Income'
             ),
             ChartSelect(
-                database=finances_db,
-                select=Config.Finances.selects['MonthlyBills'],
+                database=Finances.fullpath,
+                select=Finances.selects['MonthlyBills'],
                 label='Bills'
             ),
             ChartSelect(
-                database=finances_db,
-                select=Config.Finances.selects['MonthlyExpenditures'],
+                database=Finances.fullpath,
+                select=Finances.selects['MonthlyExpenditures'],
                 label='Expenditures'
             ),
             ChartSelect(
-                database=finances_db,
-                select=Config.Finances.selects['MonthlyBilance'],
+                database=Finances.fullpath,
+                select=Finances.selects['MonthlyBilance'],
                 label='Bilance'
             )
             },
@@ -240,8 +262,8 @@ def GivenProduct(product):
     chart=Chart(
         selects={
             ChartSelect(
-            database=finances_db,
-            select=Config.Finances.selects['GivenProduct'].replace(Config.placeholder, product),
+            database=Finances.fullpath,
+            select=Finances.selects['GivenProduct'].replace(Config.placeholder, product),
             label=product
             )
         },
@@ -253,8 +275,8 @@ def GivenType(type):
     chart=Chart(
         selects={
             ChartSelect(
-            database=finances_db,
-            select=Config.Finances.selects['GivenType'].replace(Config.placeholder, type),
+            database=Finances.fullpath,
+            select=Finances.selects['GivenType'].replace(Config.placeholder, type),
             label=type
             )
         },
@@ -268,9 +290,9 @@ def Visualize(chart):
     data= GetCollectionFromDB(chart)
     return Prepare_plot(data, chart.caption)
 def TableToLayout(table):
-    select=Config.Finances.selects['AnyTable']
+    select=Finances.selects['AnyTable']
     select=select.replace(Config.placeholder, table['name'])
-    vals=GetFromDB(finances_db, select)
+    vals=GetFromDB(Finances.fullpath, select)
     tableelement=sg.Table(key=table['name']+'_table',
                         values=vals,
                         headings=table['columns'],
@@ -281,7 +303,7 @@ def TableToLayout(table):
                         enable_click_events=True)   #Allows selection
     return tableelement
 def GenerateTableEditor(table):
-    global schema
+    global Finances
     editor=[ [sg.Text(table+' Editor'), 
              sg.Button(key=table+'Import',
                     button_text='Import data',
@@ -289,13 +311,13 @@ def GenerateTableEditor(table):
              sg.Button(key=table+'AddRecord',
                         button_text='Add record',
                         tooltip='Add single record to '+table+' table')],
-            [TableToLayout(schema[table])]]
+            [TableToLayout(Finances.schema[table])]]
     return editor
 def TableInputWindow(name):
-    global schema
+    global Finances
     layout=[[sg.Text(key='Info', text="Input desired data")]]
     #List slicing, bypass 1st element (usually ID)
-    for column in schema[name]['columns'][1:]:
+    for column in Finances.schema[name]['columns'][1:]:
         #TODO: for *ID columns change to dropdown list 
         layout.append([sg.Text(column), sg.Input(key=column)])
     layout.append([sg.Ok(), sg.Cancel()])
@@ -488,7 +510,7 @@ def main():
             if isinstance(row, int) and row>-1:
                 print(event[2])
                 record=window[widget].widget.item(row+1, 'values')
-                field=schema[table]['columns'][column]
+                field=Finances.schema[table]['columns'][column]
                 edition = CellEdition(widget, record[0], field, '', record[column])
                 EditCell(window,widget,row+1,column, edition)
                 print(edited_cells)
@@ -501,19 +523,19 @@ def main():
             continue
         if event in (popups):
             table=event.partition("Import")[0]
-            filename=sg.popup_get_file('Document to open')
+            filename=sg.popup_get_file(title='Document to open', icon=Config.icon)
             if filename not in (None, ''):                      #TODO: Validate propper path
                 data=GetDataFromCSV(filename)
-                todb=(Config.Finances.inserts[table], data[1])
-                SendToDB(Config.Finances.fullpath, todb)
+                todb=(Finances.inserts[table], data[1])
+                SendToDB(Finances.fullpath, todb)
                 #TODO: Refresh modified element data in layout
             continue
         if event in (addrecord):
             table=event.partition("AddRecord")[0]
             record=TableInputWindow(table)
             if record not in (None, ''):                      #TODO: Validate propper path
-                #todb=(Config.Finances.inserts[table], [record])
-                #SendToDB(Config.Finances.fullpath, todb)
+                #todb=(Finances.inserts[table], [record])
+                #SendToDB(Finances.fullpath, todb)
                 print(record)
                 #TODO: Refresh modified element data in layout
             continue
