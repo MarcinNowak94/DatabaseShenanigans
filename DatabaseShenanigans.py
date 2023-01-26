@@ -54,6 +54,19 @@ class Edition():
                  self.field, 
                  self.newvalue,
                  self.oldvalue)
+class Mode(Enum):
+    Type=1
+    Product=2
+    Other=3         #Reserved for future use
+class Groupings():
+    def __init__(self,
+                 group,
+                 amount,
+                 mode
+            ):
+        self.group=group
+        self.amount=amount
+        self.mode=Mode[mode]
 
 edited_cells=[]     #Collection of editted cells
 
@@ -137,13 +150,17 @@ def draw_figure(canvas, figure, loc=(0, 0)):
     figure_canvas_agg.get_tk_widget().pack(fill='both', expand=True)
     return figure_canvas_agg
 
-def Listfromtable(table, addvalues=True):
+def Listfromtable(table, mode=Mode['other']):
     #Get list of common products from DB
     values=getfromdb(finances_db, Config.Finances.selects[table])
     valuelist=[]
     
     for value in values:
-        element = value[0]+"("+str(value[2])+")" if addvalues else value[0]
+        element=Groupings(
+            group=value[0],
+            amount=str(value[2]),
+            mode=mode
+        )
         valuelist.append(element)
     return valuelist
 
@@ -204,6 +221,11 @@ def Visualize(chart):
                                   chart.selects)
     return Prepare_plot(data, chart.caption)
 
+def Given(group, Mode):
+    select='Given' + ('Product' if Mode==Mode['Product'] else 'Type')
+    group_monthly= Config.Finances.selects[select]
+    product_stats=Get_collection_fromdb(finances_db, group_monthly, {group})
+    return Prepare_plot(product_stats, group)
 def GivenProduct(Product):
     product_monthly=Config.Finances.selects['GivenProduct']
     product_stats=Get_collection_fromdb(finances_db, product_monthly, {Product})
@@ -322,8 +344,8 @@ def main():
     #layout preparation
     global editcell
     editcell=False
-    products=Listfromtable("ProductSummary")
-    types=Listfromtable("TypeSummary")
+    products=Listfromtable("ProductSummary", Mode['Product'])
+    types=Listfromtable("TypeSummary", Mode['Product'])
     sg.theme(Config.theme)
     menu = [['Visualizations', 
                 ['Most common products', 
@@ -455,6 +477,11 @@ def main():
         #Visualisations
         if event in (charts):
             draw_figure(window['canvas'].TKCanvas, Visualize(charts[event]))
+            ChangeLayout(window, 'Visualization')
+            continue
+        if event in (products+types):
+            #product=values[0] #Alternative way - use if there will be more events
+            draw_figure(window['canvas'].TKCanvas, Given(event, 'Product'))
             ChangeLayout(window, 'Visualization')
             continue
         if event in (products):
