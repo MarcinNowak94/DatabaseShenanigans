@@ -33,7 +33,15 @@ sg.popup_animated(sg.DEFAULT_BASE64_LOADING_GIF,
                     no_titlebar=False,
                     time_between_frames=100)
 
-
+#------- Class definitions -----------------------------------------------------
+class Chart():
+    def __init__(self,
+                 db,
+                 selects,
+                 caption): 
+        self.db = db
+        self.selects = selects
+        self.caption = caption
 #Class for cells
 class Edition():
     def __init__(self,
@@ -57,7 +65,7 @@ class Edition():
 
 edited_cells=[]     #Collection of editted cells
 
-#Database stuff
+#------- Database stuff --------------------------------------------------------
 def PrepareStatement(query, values):
     statement=query
     for row in values:
@@ -69,7 +77,7 @@ def PrepareStatement(query, values):
     statement=statement.rstrip(",") #delete trailing comma
     statement+=(';')
     return statement
-def getfromdb(database, select):
+def GetFromDB(database, select):
     #TODO: error handling
     connection = sqlite3.connect(database)
     cursor = connection.cursor()
@@ -87,21 +95,21 @@ def SendToDB(database, todb):
     connection.close()
 
 #TODO: change to collection of selects as object (select, caption)
-def Get_collection_fromdb(database, select_template, conditions):
+def GetCollectionFromDB(database, select_template, conditions):
     #select use [CONDITION] as placeholder for condition 
     datasets=[]
     select=''
     for condition in conditions:
         select=select_template.replace(Config.placeholder,condition)
-        data_from_db=getfromdb(database,select)
+        data_from_db=GetFromDB(database,select)
         datasets.append((data_from_db, condition))
     return datasets
 def GetDBInfo(database):
     db={}
-    for table in getfromdb(database, Config.Common['GetTables']):
+    for table in GetFromDB(database, Config.Common['GetTables']):
         table=table[0] #Get only text
         select=Config.Common['GetColumns'].replace(Config.placeholder, table)
-        columns=getfromdb(database, select)
+        columns=GetFromDB(database, select)
         names=[]
         for values in columns:
             names.append(values[0])
@@ -139,7 +147,7 @@ def draw_figure(canvas, figure, loc=(0, 0)):
 
 def Listfromtable(table, addvalues=True):
     #Get list of common products from DB
-    values=getfromdb(finances_db, Config.Finances.selects[table])
+    values=GetFromDB(finances_db, Config.Finances.selects[table])
     valuelist=[]
     
     for value in values:
@@ -153,15 +161,22 @@ productselects=[]
 for product in product_list:
     productselects.append(Config.Finances.selects['GivenProduct'].replace(Config.placeholder, product))
 
-class Chart():
-    def __init__(self,
-                 db,
-                 selects,
-                 caption): 
-        self.db = db
-        self.selects = selects
-        self.caption = caption
-
+mostcommonproducts= Chart(
+    db=finances_db,
+    selects=productselects,
+    caption='Products'
+)
+top_type=GetFromDB(finances_db, Config.Finances.selects['MostCommonProduct'])
+if len(top_type):           #In case database is empty
+    top_type=top_type[0][0] #Access value directly
+else:
+    top_type='none'
+type_monthly= Config.Finances.selects['GivenType'].replace(Config.placeholder, top_type)
+toptypemonthly= Chart(
+db=finances_db,
+selects={type_monthly},
+caption=top_type+' products across time'
+)
 monthlyincome= Chart(
     db=finances_db,
     selects={Config.Finances.selects["MonthlyIncome"]}, #Always prepare as collection 
@@ -177,18 +192,6 @@ monthlybilance= Chart(
     #captions=('MonthlyBilance','MonthlyIncome','MonthlyBills','MonthlyExpenditures')
     caption='Bilance'
 )
-mostcommonproducts= Chart(
-    db=finances_db,
-    selects=productselects,
-    caption='Products'
-)
-top_type= getfromdb(finances_db, Config.Finances.selects['MostCommonProduct'])[0][0]        #Access value directly
-type_monthly= Config.Finances.selects['GivenType'].replace(Config.placeholder, top_type)
-toptypemonthly= Chart(
-    db=finances_db,
-    selects={type_monthly},
-    caption=top_type+' products across time'
-)
 
 charts = {
     'Income summary' : monthlyincome,
@@ -199,25 +202,25 @@ charts = {
 
 
 def Visualize(chart):
-    data= Get_collection_fromdb(chart.db, 
+    data= GetCollectionFromDB(chart.db, 
                                   Config.placeholder, 
                                   chart.selects)
     return Prepare_plot(data, chart.caption)
 
 def GivenProduct(Product):
     product_monthly=Config.Finances.selects['GivenProduct']
-    product_stats=Get_collection_fromdb(finances_db, product_monthly, {Product})
+    product_stats=GetCollectionFromDB(finances_db, product_monthly, {Product})
     return Prepare_plot(product_stats, Product)
 def GivenType(type):
     type_monthly=Config.Finances.selects['GivenType']
-    type_stats=Get_collection_fromdb(finances_db, type_monthly, {type})
+    type_stats=GetCollectionFromDB(finances_db, type_monthly, {type})
     return Prepare_plot(type_stats, type)
 
 #Layout and menu ---------------------------------------------------------------
 def TableToLayout(table, visible=True):
     select=Config.Finances.selects['AnyTable']
     select=select.replace(Config.placeholder, table['name'])
-    vals=getfromdb(finances_db, select)
+    vals=GetFromDB(finances_db, select)
     tableelement=sg.Table(key=table['name']+'_table',
                         values=vals,
                         headings=table['columns'],
