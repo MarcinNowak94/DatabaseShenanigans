@@ -26,7 +26,6 @@ app_name='Budgeter'
 import Config
 chosentheme=Config.theme
 
-
 visibleelement=Config.startlayout
 #------- Class definitions -----------------------------------------------------
 class Database():
@@ -41,6 +40,15 @@ class Database():
         self.selects = selects
         self.inserts = inserts
         self.updates = updates
+class ChartSelect():
+    def __init__(self,
+                 database,
+                 select,
+                 label
+                ):
+        self.database=str(database),
+        self.select=str(select),
+        self.label=str(label)
 class Chart():
     def __init__(self,
                  selects,
@@ -66,15 +74,7 @@ class CellEdition():
                  self.field, 
                  self.newvalue,
                  self.oldvalue)
-class ChartSelect():
-    def __init__(self,
-                 database,
-                 select,
-                 label
-                ):
-        self.database=str(database),
-        self.select=str(select),
-        self.label=str(label)
+
 
 edited_cells=[]     #Collection of editted cells
 
@@ -289,6 +289,7 @@ def GivenType(type):
         },
         caption=type+' across time'
     )
+    #TODO: Check if Visualize can do
     product_stats=GetCollectionFromDB(chart)
     return Prepare_plot(product_stats, chart.caption)
 
@@ -575,7 +576,7 @@ def main():
         if event in (None, 'Exit', sg.WIN_CLOSED):
             break
         #Picked cell in table as per https://www.youtube.com/watch?v=ETHtvd-_FJg
-        if isinstance(event, tuple) and event not in (None):
+        if isinstance(event, tuple) and event[1]('+CLICKED+'):
             widget=event[0]
             table=widget.partition("_")[0]
             row=event[2][0]

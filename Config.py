@@ -1,5 +1,5 @@
-window_width =  1024 #1920 #1024
-window_height =  768 #1080 #768
+window_width =  1920 #1024
+window_height =  1080 #768
 btn_width = 20
 btn_height = 1
 plot_width = window_width-btn_width-2
@@ -8,11 +8,11 @@ plot_height = window_height-10
 limit=5 #top n products graphed
 placeholder="placeholder"
 startlayout="About..."
-icon="E:\Projects\Python\DatabaseShenanigans\DatabaseShenanigans\Resources\Graphics\Icon.ico"
-logo="E:\Projects\Python\DatabaseShenanigans\DatabaseShenanigans\Resources\Graphics\Logo.png"
+icon=".\Resources\Graphics\Icon.ico"
+logo=".\Resources\Graphics\Logo.png"
 theme='DarkAmber'
 
-fullpath="E:\Projects\Python\DatabaseShenanigans\DatabaseShenanigans\Resources\Test_DataSet\Budgeter_testbase.sqlite"
+fullpath=".\Resources\Budgeter.sqlite"
 selects={
     "AnyTable"              : "SELECT * FROM ["+placeholder+"]",
     "Expenditures"          : "SELECT * FROM [Expenditures_Enriched];",
