@@ -451,7 +451,6 @@ def PrepareWindow(theme=chosentheme):
                 [#'Configure',                  #TODO: Stretch - config
                  'Change Theme',
                     [themes],
-                'Version',
                 'About...',
                 'Manual']]                      #TODO: Wishful thinking - built in manual
             ]
@@ -576,7 +575,7 @@ def main():
         if event in (None, 'Exit', sg.WIN_CLOSED):
             break
         #Picked cell in table as per https://www.youtube.com/watch?v=ETHtvd-_FJg
-        if isinstance(event, tuple) and event[1]('+CLICKED+'):
+        if isinstance(event, tuple) and event[1]=='+CLICKED+':
             widget=event[0]
             table=widget.partition("_")[0]
             row=event[2][0]
@@ -607,17 +606,19 @@ def main():
                 #TODO: Refresh modified element data in layout
             continue
         if event in (addrecord):
-            table=event.partition("AddRecord")[0]
-            record=TableInputWindow(table)
-            if record not in (None, '', []):        
+            pass
+            #table=event.partition("AddRecord")[0]
+            #record=TableInputWindow(table)
+            #if record not in (None, '', []):        
                 #TODO: Validate propper path
-                todb=(Finances.inserts[table], [record])
-                SendToDB(Finances.fullpath, todb)
-                print(record)
+                #todb=(Finances.inserts[table], [record])
+                #SendToDB(Finances.fullpath, todb)
+                #print(record)
                 #An attempt was made
-                window.close()
-                window=PrepareWindow(chosentheme)
+                #window.close()
+                #window=PrepareWindow(chosentheme)
                 #TODO: Refresh modified element data in layout
+            #    pass
             continue
         #Visualisations
         if event in (visualizations):
@@ -646,8 +647,6 @@ def main():
             ChangeLayout(window, event)
             continue
         #Defined in docummentation
-        if event == 'Version':
-            sg.popup_scrolled(sg.get_versions())
     window.close()
 
 if __name__ == "__main__":
